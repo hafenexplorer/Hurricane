@@ -229,6 +229,7 @@ public class GobIconCategoryList extends OldListBox<GobIconCategoryList.GobCateg
                 "/terobjs/mm/tarpit",
                 "/terobjs/mm/fairystone",
                 "/terobjs/mm/tidepool",
+                "customclient/mapicons/scache",
         };
         private static final String[] TRANSPORTATION_PATH = {
                 "customclient/mapicons/knarr",
