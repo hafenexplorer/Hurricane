@@ -117,7 +117,7 @@ public class Gob implements RenderTree.Node, Sprite.Owner, Skeleton.ModOwner, Eq
 	public boolean combatFoeHighlighted = false;
 	private GobSpeedInfo gobSpeedInfo;
 	public String currentWeapon = "";
-	GobCombatDataInfo combatDataInfo;
+    public boolean combatInfoAdded = false;
 
     public static class Overlay implements RenderTree.Node, Sprite.Owner {
 	public final int id;
@@ -2568,17 +2568,15 @@ public class Gob implements RenderTree.Node, Sprite.Owner, Skeleton.ModOwner, Eq
 	}
 
 	public void addCombatDataInfo(Fightview.Relation rel) {
-		if (combatDataInfo == null) {
-			combatDataInfo = new GobCombatDataInfo(this, rel);
-			setattr(GobCombatDataInfo.class, combatDataInfo);
-		}
+        if (!combatInfoAdded) {
+            setattr(GobCombatDataInfo.class, new GobCombatDataInfo(this, rel));
+            combatInfoAdded = true;
+        }
 	}
 
 	public void removeCombatDataInfo() {
-		if (combatDataInfo != null) {
-			delattr(GobCombatDataInfo.class);
-			combatDataInfo = null;
-		}
+        setattr(GobCombatDataInfo.class, null);
+        combatInfoAdded = false;
 	}
 
 }
