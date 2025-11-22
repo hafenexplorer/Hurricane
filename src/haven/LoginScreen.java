@@ -230,7 +230,7 @@ public class LoginScreen extends Widget {
 		}
 	};
 	Config.githubLatestVersion = "Loading...";
-	GitHubVersionFetcher.fetchLatestVersion("Nightdawg", "Hurricane", new GitHubVersionFetcher.VersionCallback() {
+	GitHubVersionFetcher.fetchLatestVersion("hafenexplorer", "Hurricane", new GitHubVersionFetcher.VersionCallback() {
 		@Override
 		public void onVersionFetched(String version) {
 			Config.githubLatestVersion = version; // Update immediately upon response
@@ -679,7 +679,7 @@ public class LoginScreen extends Widget {
 				Widget prev;
 				prev = add(new Label("This is your first time launching Hurricane!"), UI.scale(new Coord(34, 3)));
 				prev = add(new Label("Please make sure to set up your Keybindings and Settings!"), prev.pos("bl").adds(0, 8).x(0));
-				prev = add(new Label("The default ones are what Nightdawg uses."), prev.pos("bl").adds(0, 8).x(34));
+				prev = add(new Label("The default ones are what the creator uses."), prev.pos("bl").adds(0, 8).x(34));
 				Button close = new Button(UI.scale(120), "Okay!", false) {
 					@Override
 					public void click() {
