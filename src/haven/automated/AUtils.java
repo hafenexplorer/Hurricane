@@ -1,6 +1,7 @@
 package haven.automated;
 
 import haven.*;
+import haven.Button;
 import haven.Composite;
 import haven.Window;
 
@@ -199,6 +200,88 @@ public class AUtils {
         }
         return null;
     }
+
+    public static ArrayList<Gob> getGobsPartial(String name, GameUI gui) {
+        ArrayList<Gob> gobs = new ArrayList<>();
+        synchronized (gui.map.glob.oc) {
+            for (Gob gob : gui.map.glob.oc) {
+                try {
+                    Resource res = gob.getres();
+                    if (res != null && res.name.contains(name)) {
+                        gobs.add(gob);
+                    }
+                } catch (Loading l) {
+                }
+            }
+        }
+        return gobs;
+    }
+
+    public static void clickUiButton(String name, GameUI gui) {
+        for (MenuGrid.Pagina pag : gui.menu.paginae) {
+            if (pag.res().name.equals(name)) {
+                gui.act(pag.act().ad);
+            }
+        }
+    }
+
+    public static Gob closestGob(List<Gob> gobs, Coord c) {
+        if (gobs.isEmpty())
+            return null;
+        Gob closestGob = gobs.get(0);
+        for (Gob gob : gobs) {
+            if (gob.rc.floor().dist(c) < closestGob.rc.floor().dist(c))
+                closestGob = gob;
+        }
+        return closestGob;
+    }
+
+    public static String getTileName(Coord coord, MCache mcache) {
+        try {
+            Coord c = new Coord(coord.x / 11, coord.y / 11).add(-1, -1);
+            int t = mcache.gettile(c);
+            Resource res = mcache.tilesetr(t);
+            if (res == null)
+                return "";
+
+            return res.basename();
+        } catch (Loading l) {
+            System.out.println("could not get tile");
+            return "";
+        }
+    }
+
+    public static void activateSign(String name, GameUI gui) {
+        Window w = gui.getwnd(name);
+        if (w != null) {
+            for (Widget wi = w.lchild; wi != null; wi = wi.prev) {
+                if (wi instanceof Button) {
+                    ((Button) wi).click();
+                }
+            }
+        }
+    }
+
+    public static void leftClick(GameUI gui, Coord c) {
+        gui.map.wdgmsg("click", Coord.z, new Coord2d(c.x, c.y).floor(posres), 1, 0);
+    }
+
+    public static ArrayList<Gob> getAllGobs(GameUI gui) {
+        ArrayList<Gob> gobs = new ArrayList<>();
+        synchronized (gui.map.glob.oc) {
+            for (Gob gob : gui.map.glob.oc) {
+                try {
+                    Resource res = gob.getres();
+                    if (res != null) {
+                        gobs.add(gob);
+                    }
+                } catch (Loading l) {
+                }
+            }
+        }
+        return gobs;
+    }
+
 
     public static boolean waitForEmptyHand(final GameUI gui, final int timeout, final String error) throws InterruptedException {
         int t = 0;

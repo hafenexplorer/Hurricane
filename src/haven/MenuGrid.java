@@ -80,6 +80,10 @@ public class MenuGrid extends Widget implements KeyBinding.Bindable {
 	    return(res.get());
 	}
 
+    public Resource.AButton act() {
+            return(res().layer(Resource.action));
+        }
+
 	public Message data() {
 	    return((sdt == null) ? Message.nil : new MessageBuf(sdt));
 	}
