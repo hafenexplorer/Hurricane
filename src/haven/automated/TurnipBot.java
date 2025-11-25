@@ -37,7 +37,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
     private int stage;
 
     public TurnipBot(GameUI gui) {
-        super(UI.scale((250), 130), "TurnipFarmer");
+        super(UI.scale((250), 130), "Farmer");
         this.gui = gui;
         this.fields = new ArrayList<>();
         currentField = 0;
@@ -51,7 +51,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
                 gui.msg("Select single field.", Color.WHITE);
                 gui.map.areaSelect = true;
             }
-        }, UI.scale(15, 15));
+        }, UI.scale(20, 15));
 
         add(new Button(UI.scale(60), "Granary") {
             @Override
@@ -61,9 +61,9 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
                 gui.msg("Select area with granary.", Color.WHITE);
                 gui.map.areaSelect = true;
             }
-        }, UI.scale(80, 15));
+        }, UI.scale(90, 15));
 
-        add(new Button(UI.scale(50), "Reset") {
+        add(new Button(UI.scale(60), "Reset") {
             @Override
             public void click() {
                 fields.clear();
@@ -75,7 +75,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
                 currentField = 0;
                 stage = 0;
             }
-        }, UI.scale(150, 15));
+        }, UI.scale(160, 15));
 
         fieldsLabel = new Label("Fields: 0");
         add(fieldsLabel, UI.scale(50, 50));
