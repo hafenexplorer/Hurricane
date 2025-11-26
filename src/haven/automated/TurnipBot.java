@@ -11,6 +11,7 @@ import haven.res.ui.tt.q.quality.Quality;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,12 +37,77 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
     private int currentField;
     private int stage;
 
+    private String SelectedCrop = "";
+    private String SeedSelection = "";
+    private String Crop = "";
+    private String StackCrop = "";
+
     public TurnipBot(GameUI gui) {
         super(UI.scale((250), 130), "Farmer");
         this.gui = gui;
         this.fields = new ArrayList<>();
         currentField = 0;
         stage = 0;
+
+        List<String> crops = Arrays.asList("turnip", "carrot", "beetroot", "flax");
+        add(new OldDropBox<String>(crops.size(), crops) {
+
+            protected String listitem(int i) {
+                return crops.get(i);
+            }
+
+            protected int listitems() {
+                return crops.size();
+            }
+
+            protected void drawitem(GOut g, String crop, int i) {
+                g.aimage(Text.renderstroked(crop).tex(), Coord.of(UI.scale(4), g.sz().y / 2), 0.0, 0.5);
+            }
+
+            @Override
+            public void change(String crop) {
+                super.change(crop);
+                for (int i = 0; i < crops.size(); i++) {
+                    if (crop.equals(crops.get(i))) {
+
+                        // Update SeedSelection and SelectedCrop based on the crop
+                        switch (crop) {
+                            case "turnip":
+                                SeedSelection = "gfx/invobjs/seed-turnip";
+                                SelectedCrop = "gfx/terobjs/plants/turnip";
+                                Crop = "Turnip";
+                                StackCrop = "Turnip, stack of";
+                                break;
+                            case "carrot":
+                                SeedSelection = "gfx/invobjs/seed-carrot";
+                                SelectedCrop = "gfx/terobjs/plants/carrot";
+                                Crop = "Carrot";
+                                StackCrop = "Carrot, stack of";
+                                break;
+                            case "beetroot":
+                                SeedSelection = "gfx/invobjs/seed-beetroot";
+                                SelectedCrop = "gfx/terobjs/plants/beetroot";
+                                Crop = "Beetroot";
+                                StackCrop = "Carrot, stack of";
+                                break;
+                            case "flax":
+                                SeedSelection = "gfx/invobjs/seed-flax";
+                                SelectedCrop = "gfx/terobjs/plants/flax";
+                                Crop = "Flax";
+                                StackCrop = "x";
+                                break;
+                            default:
+                                SeedSelection = "gfx/invobjs/seed-" + crop.toLowerCase();
+                                SelectedCrop = "gfx/terobjs/plants/" + crop.toLowerCase();
+                                Crop = crop.toLowerCase();
+                                StackCrop = "x";
+                                break;
+                        }
+                        break;
+                    }
+                }
+            }
+        }, UI.scale(90, 110));
 
         add(new Button(UI.scale(60), "Field") {
             @Override
@@ -112,14 +178,18 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
             @Override
             public void click() {
                 if (fields.size() > 0 && granary != null) {
-                    active = !active;
-                    if (active) {
-                        this.change("Stop");
+                    if (!SelectedCrop.isEmpty()) {
+                        active = !active;
+                        if (active) {
+                            this.change("Stop");
+                        } else {
+                            this.change("Start");
+                        }
                     } else {
-                        this.change("Start");
+                        gui.error("Need to select a crop");
                     }
                 } else {
-                    gui.error("Need to select at least one field and granary.");
+                    gui.error("Need to select at least one field and granary");
                 }
             }
         }, UI.scale(160, 80));
@@ -263,7 +333,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
             gui.msg("Field finished, Depositing seeds", Color.WHITE);
         } else {
             FieldSegment currentFieldSegment = currentField.plantingSegments.get(currentField.currentIndex);
-            List<Gob> gobs = AUtils.getGobsInSelectionStartingWith("gfx/terobjs/plants/turnip", currentFieldSegment.topLeft, currentFieldSegment.bottomRight, gui);
+            List<Gob> gobs = AUtils.getGobsInSelectionStartingWith(SelectedCrop, currentFieldSegment.topLeft, currentFieldSegment.bottomRight, gui);
             if (!checkIfSeedsInInventory() && gobs.size() < currentFieldSegment.size) {
                 getHighestQualitySeeds();
             } else if (checkIfSeedsInInventory() && gobs.size() < currentFieldSegment.size) {
@@ -299,7 +369,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
             } catch (InterruptedException ignored) {
             }
         } else {
-            Gob closest = AUtils.getClosestCropInSelectionStartingWith("gfx/terobjs/plants/turnip", currentFieldSegment.topLeft, currentFieldSegment.bottomRight, gui, 1);
+            Gob closest = AUtils.getClosestCropInSelectionStartingWith(SelectedCrop, currentFieldSegment.topLeft, currentFieldSegment.bottomRight, gui, 1);
             if (closest == null) {
                 currentField.setCurrentIndex(currentField.currentIndex+1);
                 gui.msg("Harvesting next row.", Color.WHITE);
@@ -328,7 +398,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
                 GItem firstSeedInInventory = null;
                 for (WItem wItem : gui.maininv.getAllItems()) {
                     try {
-                        if (wItem.item.getres() != null && wItem.item.getres().name.equals("gfx/invobjs/seed-turnip")) {
+                        if (wItem.item.getres() != null && wItem.item.getres().name.equals(SeedSelection)) {
                             firstSeedInInventory = wItem.item;
                         }
                     } catch (Loading e) {
@@ -350,7 +420,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
         boolean seeds = false;
         for (WItem wItem : gui.maininv.getAllItems()) {
             try {
-                if (wItem.item.getres() != null && wItem.item.getres().name.equals("gfx/invobjs/seed-turnip")) {
+                if (wItem.item.getres() != null && wItem.item.getres().name.equals(SeedSelection)) {
                     seeds = true;
                 }
             } catch (Loading e) {
@@ -377,7 +447,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
         Grainslot best = FarmingStatic.grainSlots.stream()
                 .filter(grainslot -> grainslot.getRawinfo() != null)
                 .filter(grainslot -> {
-                    boolean turnip = grainslot.info().stream().anyMatch(info -> info instanceof ItemInfo.Name && ((ItemInfo.Name) info).original.contains("Turnip"));
+                    boolean turnip = grainslot.info().stream().anyMatch(info -> info instanceof ItemInfo.Name && ((ItemInfo.Name) info).original.contains(Crop));
                     boolean enoughForField = grainslot.info().stream().anyMatch(info -> info instanceof GItem.Amount && ((GItem.Amount) info).itemnum() >= gui.maininv.getFreeSpace() * 50);
                     double qualityTemp = grainslot.info().stream().filter(info -> info instanceof Quality).mapToDouble(info -> ((Quality) info).q).findFirst().orElse(0.0);
                     boolean betterQl = qualityTemp > 0;
@@ -414,6 +484,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
             if (freeSpace < 1 && FarmingStatic.grainSlots.size() == 0) {
                 gui.map.pfRightClick(granary, -1, 3, 0, null);
                 AUtils.waitPf(gui);
+                iterateThroughSeeds();
                 Thread.sleep(1000);
             } else if (freeSpace < 1 && FarmingStatic.grainSlots.size() == 10) {
                 iterateThroughSeeds();
@@ -424,7 +495,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
 
     private void iterateThroughSeeds() {
         gui.maininv.getAllItems().stream()
-                .filter(wItem -> wItem.item.getres() != null && wItem.item.getres().name.equals("gfx/invobjs/seed-turnip"))
+                .filter(wItem -> wItem.item.getres() != null && wItem.item.getres().name.equals(SeedSelection))
                 .forEach(wItem -> {
                     try {
                         double quality = wItem.item.info().stream().filter(info -> info instanceof Quality).map(info -> ((Quality) info).q).findFirst().orElse(0.0);
@@ -434,7 +505,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
                         Grainslot matchingQl = FarmingStatic.grainSlots.stream()
                                 .filter(grainslot -> grainslot.getRawinfo() != null)
                                 .filter(grainslot -> {
-                                    boolean turnip = grainslot.info().stream().anyMatch(info -> info instanceof ItemInfo.Name && ((ItemInfo.Name) info).original.contains("Turnip"));
+                                    boolean turnip = grainslot.info().stream().anyMatch(info -> info instanceof ItemInfo.Name && ((ItemInfo.Name) info).original.contains(Crop));
                                     boolean fitAll = grainslot.info().stream().anyMatch(info -> info instanceof GItem.Amount && ((GItem.Amount) info).itemnum() + amount <= 200000);
                                     boolean qlMatch = grainslot.info().stream().anyMatch(info -> info instanceof Quality && ((Quality) info).q == quality);
                                     return turnip && fitAll && qlMatch;
@@ -471,7 +542,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
     private void dropTurnips() {
         for (WItem wItem : ui.gui.maininv.getAllItems()) {
             GItem gitem = wItem.item;
-            if (gitem.getname().equals("Turnip") || gitem.getname().equals("Turnip, stack of")) {
+            if (gitem.getname().equals(Crop) || gitem.getname().equals(StackCrop)) {
                 gitem.wdgmsg("drop", new Coord(wItem.item.sz.x / 2, wItem.item.sz.y / 2));
             }
         }
