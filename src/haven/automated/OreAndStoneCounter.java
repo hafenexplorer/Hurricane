@@ -1,5 +1,6 @@
 package haven.automated;
 
+import haven.Button;
 import haven.Label;
 import haven.Scrollbar;
 import haven.Window;
@@ -17,14 +18,31 @@ public class OreAndStoneCounter extends Window implements Runnable {
     private final GameUI gui;
     private boolean stop;
     private OreList oreList;
+    private MinerSpy minerSpy;
+    private Thread minerSpyThread;
+    private Button minerSpyButton;
 
     public OreAndStoneCounter(GameUI gui) {
         super(UI.scale(200, 35), "Ore & Stone Counter");
         this.gui = gui;
         this.stop = false;
+
+        // Add Miner Spy button at the top
+        minerSpyButton = add(new Button(UI.scale(80), "Miner Spy") {
+            @Override
+            public void click() {
+                toggleMinerSpy();
+            }
+        }, UI.scale(60, 5));
         this.oreList = new OreList(250, 20);
-        add(oreList, UI.scale(0, 0));
+        add(oreList, UI.scale(0, 35));
+
+        // Initialize MinerSpy
+        minerSpy = new MinerSpy(gui);
+        minerSpyThread = new Thread(minerSpy, "MinerSpy");
+        minerSpyThread.start();
     }
+
 
     @Override
     public void run(){
@@ -91,13 +109,32 @@ public class OreAndStoneCounter extends Window implements Runnable {
     }
 
     public void stop() {
+        // Stop MinerSpy
+        if (minerSpy != null) {
+            minerSpy.stop();
+        }
+        if (minerSpyThread != null) {
+            minerSpyThread.interrupt();
+        }
         gui.map.wdgmsg("click", Coord.z, gui.map.player().rc.floor(posres), 1, 0);
         if (gui.map.pfthread != null) {
             gui.map.pfthread.interrupt();
         }
         this.destroy();
     }
-    
+
+
+    private void toggleMinerSpy() {
+        if (minerSpy != null) {
+            boolean newState = !minerSpy.isActive();
+            minerSpy.setActive(newState);
+            if (newState) {
+                minerSpyButton.change("Stop Spy");
+            } else {
+                minerSpyButton.change("Miner Spy");
+            }
+        }
+    }
     public static class OreList extends Widget {
         ArrayList<Ore> ores = new ArrayList<>();
         Scrollbar sb;

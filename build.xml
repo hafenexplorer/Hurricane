@@ -123,7 +123,9 @@
     <jar destfile="build/hafen.jar" update="true">
       <fileset dir="build/classes" />
       <fileset dir="build/classes-lib" />
-      <manifest>
+        <!-- Include res folder in the JAR -->
+        <fileset dir="." includes="res/**" />
+        <manifest>
 	<attribute name="Main-Class" value="haven.MainFrame" />
 	<attribute name="Class-Path" value="jogl-all.jar gluegen-rt.jar lwjgl-fat.jar lwjgl-awt.jar lwjgl-opengl-fat.jar steamworks4j.jar builtin-res.jar hafen-res.jar sqlite-jdbc-3.42.0.0.jar" />
     <attribute name="Enable-Native-Access" value="ALL-UNNAMED" />
