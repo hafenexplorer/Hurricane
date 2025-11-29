@@ -97,18 +97,33 @@ public class CharacterCycleBot {
                 try {
                     loginAndSelectCharacter(characterName);
 
-                    // Wait a moment for character to load
-                    System.out.println("Waiting 5 seconds for character to load...");
-                    Thread.sleep(5000);
+                    // Wait for character to fully load into the game world
+                    System.out.println("Waiting for character to load into game world...");
+                    boolean worldLoaded = waitForWorldLoad();
+                    
+                    if (!worldLoaded) {
+                        System.out.println("Warning: World may not be fully loaded, gob scanning may be incomplete");
+                    } else {
+                        System.out.println("World loaded, waiting 5 seconds for gobs to populate...");
+                        Thread.sleep(5000);
+                    }
 
-                    // Scan for notable gobs
+                    // Scan for notable gobs (even if world didn't fully load)
                     if (config.getNotifyBeforeLogout() && config.getDiscordWebhook() != null && !config.getGobWatchlist().isEmpty()) {
                         System.out.println("Scanning for watched gobs...");
+                        System.out.println("Watching for: " + String.join(", ", config.getGobWatchlist()));
                         try {
                             if (client != null && client.sess != null) {
                                 DiscordWebhook discord = new DiscordWebhook(config.getDiscordWebhook());
                                 GobScanner scanner = new GobScanner(client.sess, discord, config.getGobWatchlist());
                                 scanner.notifyFoundGobs(characterName);
+                                
+                                // If world didn't load, provide helpful message
+                                if (!worldLoaded) {
+                                    System.out.println("Note: World data may not have loaded in headless mode.");
+                                    System.out.println("  This is a known limitation - the server may not send world data without a display.");
+                                    System.out.println("  Gob scanning will still work if the server sends data in the future.");
+                                }
                             } else {
                                 System.out.println("Warning: Client session not available for gob scanning");
                             }
@@ -227,6 +242,102 @@ public class CharacterCycleBot {
             if (found != null) return found;
         }
         return null;
+    }
+
+    /**
+     * Wait for the game world to fully load (gobs appear in OCache)
+     * In headless mode, the server may not send world data until GameUI is created.
+     * We wait for either GameUI to be created OR gobs to appear in OCache.
+     * @return true if world loaded (gobs found), false if timeout
+     */
+    private boolean waitForWorldLoad() {
+        int maxWait = 90; // Increased to 90 seconds - server might be slow
+        int waited = 0;
+        boolean gameuiCreated = false;
+
+        while (waited < maxWait && client.alive()) {
+            try {
+                Thread.sleep(1000);
+                waited++;
+
+                // Check if GameUI was created (server sends "newwdg gameui" message)
+                if (client.ui != null && client.ui.gui != null) {
+                    if (!gameuiCreated) {
+                        System.out.println("GameUI created! Server should start sending world data...");
+                        gameuiCreated = true;
+                    }
+                }
+
+                // Check if OCache has any gobs - this works even without GameUI/MapView
+                if (client.sess != null && client.sess.glob != null && client.sess.glob.oc != null) {
+                    int gobCount = 0;
+                    int loadedGobCount = 0;
+                    boolean foundPlayerGob = false;
+                    
+                    synchronized (client.sess.glob.oc) {
+                        for (Gob gob : client.sess.glob.oc) {
+                            gobCount++;
+                            try {
+                                Resource res = gob.getres();
+                                if (res != null && res.name != null) {
+                                    loadedGobCount++;
+                                    // Check if this might be the player gob (avatar gobs typically have "gfx/avatar" in path)
+                                    if (res.name.contains("avatar") || res.name.contains("char")) {
+                                        foundPlayerGob = true;
+                                    }
+                                }
+                            } catch (Loading l) {
+                                // Resource still loading
+                            } catch (Exception e) {
+                                // Ignore errors
+                            }
+                        }
+                    }
+                    
+                    // If we found gobs, world is loaded
+                    if (gobCount > 0) {
+                        String playerInfo = foundPlayerGob ? " (player gob detected)" : "";
+                        System.out.println("World loaded! Found " + gobCount + " gob(s) in OCache (" + loadedGobCount + " with loaded resources)" + playerInfo);
+                        return true;
+                    }
+                }
+
+                if (waited % 10 == 0) {
+                    System.out.println("Waiting for world to load... (" + waited + "s)");
+                    // Debug: show what we're waiting for
+                    System.out.println("  Session: " + (client.sess != null) + 
+                                     ", Glob: " + (client.sess != null && client.sess.glob != null) + 
+                                     ", OCache: " + (client.sess != null && client.sess.glob != null && client.sess.glob.oc != null));
+                    if (client.ui != null) {
+                        System.out.println("  UI exists: true, GameUI: " + (client.ui.gui != null) + 
+                                         ", Map: " + (client.ui.gui != null && client.ui.gui.map != null));
+                    } else {
+                        System.out.println("  UI exists: false");
+                    }
+                    if (gameuiCreated) {
+                        System.out.println("  GameUI created, waiting for server to send gobs...");
+                    } else {
+                        System.out.println("  Waiting for GameUI to be created (server sends 'newwdg gameui' message)...");
+                    }
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            } catch (Exception e) {
+                // Continue waiting on errors
+                if (waited % 10 == 0) {
+                    System.err.println("Error checking world load: " + e.getMessage());
+                }
+            }
+        }
+
+        System.out.println("Warning: World load timeout after " + maxWait + " seconds");
+        System.out.println("  GameUI created: " + gameuiCreated);
+        System.out.println("  Note: Gobs are accessible via sess.glob.oc without GameUI,");
+        System.out.println("        but the server typically only SENDS gobs after GameUI is created.");
+        System.out.println("        Without GameUI, the server may not send world data (gobs).");
+        System.out.println("        This is a server-side behavior, not a client limitation.");
+        return false;
     }
 
     private void logout() {
