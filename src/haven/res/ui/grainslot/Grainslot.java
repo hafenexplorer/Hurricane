@@ -26,6 +26,7 @@ public class Grainslot extends Widget implements DTarget, ItemInfo.Owner {
 	pbtn = adda(new Button(w, "Put", this::putUpgraded), tbtn.c.x - m, sz.y / 2, 1.0, 0.5);
 	ybtn = adda(new Button(w, "Auto", this::takeFromHere), pbtn.c.x - m, sz.y / 2, 1, 0.5);
 	ebtn.hide(); tbtn.hide(); pbtn.hide();
+    FarmingStatic.grainSlots.add(this);
     }
 
     public static Widget mkwidget(UI ui, Object... args) {
