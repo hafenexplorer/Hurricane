@@ -17,6 +17,7 @@ import java.util.Objects;
 
 import static haven.OCache.posres;
 
+@SuppressWarnings("ClassEscapesDefinedScope")
 public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
     private final GameUI gui;
     private boolean stop;
@@ -49,7 +50,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
         currentField = 0;
         stage = 0;
 
-        List<String> crops = Arrays.asList("turnip", "carrot", "beetroot", "flax");
+        List<String> crops = Arrays.asList("turnip", "carrot", "beetroot", "flax", "pipeweed", "hemp", "wheat", "barley", "millet", "poppy");
         add(new OldDropBox<String>(crops.size(), crops) {
 
             protected String listitem(int i) {
@@ -177,7 +178,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
         startButton = add(new Button(UI.scale(50), "Start") {
             @Override
             public void click() {
-                if (fields.size() > 0 && granary != null) {
+                if (!fields.isEmpty() && granary != null) {
                     if (!SelectedCrop.isEmpty()) {
                         active = !active;
                         if (active) {
@@ -242,7 +243,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
                     stage = 2;
                 }
                 clearhand();
-                if (fields.size() > 0 && granary != null) {
+                if (!fields.isEmpty() && granary != null) {
                     TurnipField currentField = getFieldByIndex(this.currentField);
                     checkHealthStaminaEnergy();
                     if (currentField == null) {
@@ -432,12 +433,34 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
     private void getHighestQualitySeeds() {
         try {
             Thread.sleep(300);
-            if (FarmingStatic.grainSlots.size() == 0) {
+            if (FarmingStatic.grainSlots.isEmpty()) {
                 gui.map.pfRightClick(granary, -1, 3, 0, null);
                 AUtils.waitPf(gui);
-                Thread.sleep(1000);
+
+                // Wait for grainSlots to populate (max 10 seconds)
+                int maxWait = 100; // 10 seconds (100 * 100ms)
+                int waited = 0;
+                while (FarmingStatic.grainSlots.size() < 10 && waited < maxWait) {
+                    Thread.sleep(100);
+                    waited++;
+                }
+
+                if (FarmingStatic.grainSlots.size() == 10) {
+                    takeBestSeeds();
+                } else {
+                    gui.error("Granary window did not open properly. Retrying...");
+                    return; // Exit to prevent infinite loop
+                }
             } else if (FarmingStatic.grainSlots.size() == 10) {
                 takeBestSeeds();
+            } else {
+                // Window is partially loaded, wait a bit more
+                Thread.sleep(500);
+                if (FarmingStatic.grainSlots.size() == 10) {
+                    takeBestSeeds();
+                } else {
+                    return; // Exit to prevent infinite loop
+                }
             }
         } catch (InterruptedException ignored) {
         }
@@ -481,13 +504,40 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
         try {
             int freeSpace = checkFreeSpace ? gui.maininv.getFreeSpace() : 0;
             Thread.sleep(300);
-            if (freeSpace < 1 && FarmingStatic.grainSlots.size() == 0) {
-                gui.map.pfRightClick(granary, -1, 3, 0, null);
-                AUtils.waitPf(gui);
-                iterateThroughSeeds();
-                Thread.sleep(1000);
-            } else if (freeSpace < 1 && FarmingStatic.grainSlots.size() == 10) {
-                iterateThroughSeeds();
+
+            if (freeSpace < 1) {
+                // Wait for granary window to open and populate
+                if (FarmingStatic.grainSlots.isEmpty()) {
+                    gui.map.pfRightClick(granary, -1, 3, 0, null);
+                    AUtils.waitPf(gui);
+
+                    // Wait for grainSlots to populate (max 10 seconds)
+                    int maxWait = 100; // 10 seconds (100 * 100ms)
+                    int waited = 0;
+                    while (FarmingStatic.grainSlots.size() < 10 && waited < maxWait) {
+                        Thread.sleep(100);
+                        waited++;
+                    }
+
+                    if (FarmingStatic.grainSlots.size() == 10) {
+                        iterateThroughSeeds();
+                    } else {
+                        gui.error("Granary window did not open properly. Retrying...");
+                        Thread.sleep(1000);
+                        return; // Exit and retry on next iteration
+                    }
+                } else if (FarmingStatic.grainSlots.size() == 10) {
+                    iterateThroughSeeds();
+                } else {
+                    // Window is partially loaded, wait a bit more
+                    Thread.sleep(500);
+                    if (FarmingStatic.grainSlots.size() == 10) {
+                        iterateThroughSeeds();
+                    } else {
+                        // Still not loaded, return to prevent infinite loop
+                        return;
+                    }
+                }
             }
         } catch (InterruptedException ignored) {
         }
