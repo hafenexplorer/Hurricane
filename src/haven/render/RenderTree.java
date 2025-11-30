@@ -722,6 +722,11 @@ public class RenderTree implements RenderList.Adapter, Disposable {
 	    @SuppressWarnings("unchecked")
 	    public <T extends State> T get(State.Slot<T> slot) {
 		DepInfo bk = dstate();
+		if(bk == null) {
+		    // Handle NullPointerException when dstate is null (can happen during concurrent updates or slot removal)
+		    // Similar to the null check in istate() method
+		    return(null);
+		}
 		int idx = slot.id;
 		if((bk.states.length <= idx) || !bk.def[idx])
 		    throw(new RuntimeException("Reading undefined slot " + slot + " from slot-pipe"));
