@@ -240,11 +240,11 @@ public class LoginScreen extends Widget {
 	GameUI.subscribedAccount = false;
 	GameUI.stopAllThemes();
 	add(new IButton("customclient/discord", "", "-d", "-h") {
-		{settip("Hurricane Client Discord");}
+		{settip("NeuroToxin Client Discord");}
 		public void click() {
 			URI uri = null;
 			try {
-				uri = new URI("https://discord.gg/WnEYkeAzja");
+				uri = new URI("https://discord.gg/gsCAr4Z6");
 			} catch (URISyntaxException e) {
 				return;
 			}
@@ -677,7 +677,7 @@ public class LoginScreen extends Widget {
 		firstTimeUseWindow = new Window(Coord.z, "Hey!", true) {
 			{
 				Widget prev;
-				prev = add(new Label("This is your first time launching Hurricane!"), UI.scale(new Coord(34, 3)));
+				prev = add(new Label("This is your first time launching NeuroToxin!"), UI.scale(new Coord(34, 3)));
 				prev = add(new Label("Please make sure to set up your Keybindings and Settings!"), prev.pos("bl").adds(0, 8).x(0));
 				prev = add(new Label("The default ones are what the creator uses."), prev.pos("bl").adds(0, 8).x(34));
 				Button close = new Button(UI.scale(120), "Okay!", false) {
