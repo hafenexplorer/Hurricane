@@ -652,8 +652,23 @@ public class RenderTree implements RenderList.Adapter, Disposable {
 	}
 
 	private DepInfo dstate() {
-	    if(dstate == null)
-		setdstate(mkdstate(this.cstate, this.ostate));
+	    if(dstate == null) {
+		// Check if slot is being removed before trying to initialize
+		if((parent != null) && (pidx < 0))
+		    return(null); // Slot is being removed, return null
+		try {
+		    DepInfo newdstate = mkdstate(this.cstate, this.ostate);
+		    setdstate(newdstate);
+		    // Double-check: if dstate is still null after setdstate, 
+		    // it means setdstate was called with null by another thread (slot removal)
+		    if(dstate == null)
+			return(null);
+		} catch(Exception e) {
+		    // If mkdstate fails (e.g., parent.istate() fails), return null
+		    // This can happen if parent is being updated/removed concurrently
+		    return(null);
+		}
+	    }
 	    return(dstate);
 	}
 
@@ -721,19 +736,19 @@ public class RenderTree implements RenderList.Adapter, Disposable {
 	public class SlotPipe implements Pipe {
 	    @SuppressWarnings("unchecked")
 	    public <T extends State> T get(State.Slot<T> slot) {
-		// Check if slot is being removed before accessing state
-		if((parent != null) && (pidx < 0))
-		    throw(new SlotRemoved(this));
-		
 		DepInfo bk = dstate();
 		if(bk == null) {
-		    // If dstate is still null after initialization attempt, try to get state from parent
-		    // This can happen during concurrent updates. Fallback to parent state if available.
+		    // dstate is null - this means:
+		    // 1. Slot is being removed (pidx < 0, handled in dstate())
+		    // 2. Parent is unavailable/uninitialized (mkdstate() failed)
+		    // 3. Race condition during concurrent update
+		    // Try to get state from parent as fallback
 		    if(parent != null) {
 			try {
 			    return(parent.istate().get(slot));
 			} catch(Exception e) {
-			    // If parent also fails, return null to allow graceful degradation
+			    // Parent also unavailable - return null to allow graceful degradation
+			    // GroupPipe.states() handles null states properly
 			    return(null);
 			}
 		    }
