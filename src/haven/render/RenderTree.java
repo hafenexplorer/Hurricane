@@ -721,10 +721,23 @@ public class RenderTree implements RenderList.Adapter, Disposable {
 	public class SlotPipe implements Pipe {
 	    @SuppressWarnings("unchecked")
 	    public <T extends State> T get(State.Slot<T> slot) {
+		// Check if slot is being removed before accessing state
+		if((parent != null) && (pidx < 0))
+		    throw(new SlotRemoved(this));
+		
 		DepInfo bk = dstate();
 		if(bk == null) {
-		    // Handle NullPointerException when dstate is null (can happen during concurrent updates or slot removal)
-		    // Similar to the null check in istate() method
+		    // If dstate is still null after initialization attempt, try to get state from parent
+		    // This can happen during concurrent updates. Fallback to parent state if available.
+		    if(parent != null) {
+			try {
+			    return(parent.istate().get(slot));
+			} catch(Exception e) {
+			    // If parent also fails, return null to allow graceful degradation
+			    return(null);
+			}
+		    }
+		    // No parent available, return null
 		    return(null);
 		}
 		int idx = slot.id;
