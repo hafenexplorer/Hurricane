@@ -734,6 +734,10 @@ public class CellarDiggingBot extends Window implements Runnable {
         try {
             columns = AUtils.getGobs("gfx/terobjs/column", gui);
             Gob centerColumn = AUtils.closestGob(columns, gui.map.player().rc.floor());
+            if (centerColumn == null) {
+                System.err.println("CellarBot: No center column found, cannot flee");
+                return;
+            }
             currentAnchorColumn = centerColumn.rc.floor().add(new Coord(direction).add(directionPerpendicular).mul(11));
             if (AUtils.getTileName(currentAnchorColumn, map).equals("mine")) {
                 Thread.sleep(500);
@@ -742,7 +746,10 @@ public class CellarDiggingBot extends Window implements Runnable {
                 Coord addDirection = direction.inv().mul(11).mul(12);
 
                 centerColumn = AUtils.closestGob(columns, currentAnchorColumn.add(addDirection));
-
+                if (centerColumn == null) {
+                    System.err.println("CellarBot: No center column found, cannot flee");
+                    return;
+                }
                 currentAnchorColumn = centerColumn.rc.floor().add(new Coord(direction).add(directionPerpendicular).mul(11));
                 gui.map.pfLeftClick(currentAnchorColumn.sub(direction.mul(2 * 11)), null);
                 AUtils.waitPf(gui);

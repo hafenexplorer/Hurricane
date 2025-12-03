@@ -26,6 +26,7 @@
 
 package haven.automated;
 
+import haven.OptWnd;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
@@ -43,13 +44,31 @@ public class DiscordWebhook {
      * @return true if successful, false otherwise
      */
     public boolean send(String content) {
-        if (webhookUrl == null || webhookUrl.isEmpty()) {
+        //if (webhookUrl == null || webhookUrl.isEmpty()) {
+        String urlToUse = webhookUrl;
+
+        // If webhookUrl is not configured, try to use OptWnd.discordEndpointTextEntry as fallback
+        if (urlToUse == null || urlToUse.isEmpty()) {
+            try {
+                if (OptWnd.discordEndpointTextEntry != null) {
+                    String fallbackUrl = OptWnd.discordEndpointTextEntry.buf.line();
+                    if (fallbackUrl != null && !fallbackUrl.isEmpty()) {
+                        urlToUse = fallbackUrl;
+                    }
+                }
+            } catch (Exception e) {
+                // If accessing OptWnd fails, continue with null check below
+            }
+        }
+
+        if (urlToUse == null || urlToUse.isEmpty()) {
             System.err.println("Discord webhook URL not configured");
             return false;
         }
 
         try {
-            URL url = new URL(webhookUrl);
+            //URL url = new URL(webhookUrl);
+            URL url = new URL(urlToUse);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -95,13 +114,31 @@ public class DiscordWebhook {
      * @return true if successful, false otherwise
      */
     public boolean sendEmbed(String title, String description, int color) {
-        if (webhookUrl == null || webhookUrl.isEmpty()) {
+        //if (webhookUrl == null || webhookUrl.isEmpty()) {
+        String urlToUse = webhookUrl;
+
+        // If webhookUrl is not configured, try to use OptWnd.discordEndpointTextEntry as fallback
+        if (urlToUse == null || urlToUse.isEmpty()) {
+            try {
+                if (OptWnd.discordEndpointTextEntry != null) {
+                    String fallbackUrl = OptWnd.discordEndpointTextEntry.buf.line();
+                    if (fallbackUrl != null && !fallbackUrl.isEmpty()) {
+                        urlToUse = fallbackUrl;
+                    }
+                }
+            } catch (Exception e) {
+                // If accessing OptWnd fails, continue with null check below
+            }
+        }
+
+        if (urlToUse == null || urlToUse.isEmpty()) {
             System.err.println("Discord webhook URL not configured");
             return false;
         }
 
         try {
-            URL url = new URL(webhookUrl);
+            //URL url = new URL(webhookUrl);
+            URL url = new URL(urlToUse);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");

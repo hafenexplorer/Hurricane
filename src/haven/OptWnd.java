@@ -4296,6 +4296,7 @@ public class OptWnd extends Window {
 	}
 
 	public static TextEntry webmapEndpointTextEntry;
+    public static TextEntry discordEndpointTextEntry;
 	public static CheckBox uploadMapTilesCheckBox;
 	public static CheckBox sendLiveLocationCheckBox;
 	public static TextEntry liveLocationNameTextEntry;
@@ -4345,6 +4346,14 @@ public class OptWnd extends Window {
 			}, prev.pos("ur").adds(6, 0));
 			liveLocationNameTextEntry.tooltip = liveLocationNameTooltip;
 
+            prev = add(new Label("Discord Webhook:"), prev.pos("bl").adds(0, 16).x(0));
+            prev = add(discordEndpointTextEntry = new TextEntry(UI.scale(220), Utils.getpref("DiscordEndpoint", "")){
+                protected void changed() {
+                    Utils.setpref("DiscordEndpoint", this.buf.line());
+                    MappingClient.destroy();
+                    super.changed();
+                }
+            }, prev.pos("ur").adds(16, 0));
 //			prev = add(new Label("Markers to upload:"), prev.pos("bl").adds(0, 20).x(0));
 //
 //			for (Map.Entry<Color, Boolean> entry : colorCheckboxesMap.entrySet()) {

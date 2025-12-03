@@ -50,7 +50,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
         currentField = 0;
         stage = 0;
 
-        List<String> crops = Arrays.asList("turnip", "carrot", "beetroot", "flax", "pipeweed", "hemp", "wheat", "barley", "millet", "poppy");
+        List<String> crops = Arrays.asList("turnip", "carrot", "beet", "flax", "hemp", "pipeweed", "wheat", "barley", "millet", "poppy", "yellowonion", "redonion", "garlic", "leek", "greenkale");
         add(new OldDropBox<String>(crops.size(), crops) {
 
             protected String listitem(int i) {
@@ -101,7 +101,7 @@ public class TurnipBot extends Window implements Runnable, AreaSelectCallback {
                                 SeedSelection = "gfx/invobjs/seed-" + crop.toLowerCase();
                                 SelectedCrop = "gfx/terobjs/plants/" + crop.toLowerCase();
                                 Crop = crop.toLowerCase();
-                                StackCrop = "x";
+                                StackCrop = Crop + ", stack of";
                                 break;
                         }
                         break;

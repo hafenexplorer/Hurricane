@@ -57,7 +57,7 @@ import static haven.Utils.eq;
  * - The dstate is calculated using a DepPipe, which is the Pipe
  *   passed when evaluating the tree-slot's pipe-ops. It records what
  *   state-slots were written to during the evaluation, and which of
- *   the parent state's that were read during the same evaluation.
+ *   the parent's states that were read during the same evaluation.
  *
  * - A tree-slot's pdstate() function returns the actual pipe used for
  *   the states written into DepInfos (ie. the concrete pipe, as
@@ -652,23 +652,8 @@ public class RenderTree implements RenderList.Adapter, Disposable {
 	}
 
 	private DepInfo dstate() {
-	    if(dstate == null) {
-		// Check if slot is being removed before trying to initialize
-		if((parent != null) && (pidx < 0))
-		    return(null); // Slot is being removed, return null
-		try {
-		    DepInfo newdstate = mkdstate(this.cstate, this.ostate);
-		    setdstate(newdstate);
-		    // Double-check: if dstate is still null after setdstate, 
-		    // it means setdstate was called with null by another thread (slot removal)
-		    if(dstate == null)
-			return(null);
-		} catch(Exception e) {
-		    // If mkdstate fails (e.g., parent.istate() fails), return null
-		    // This can happen if parent is being updated/removed concurrently
-		    return(null);
-		}
-	    }
+	    if(dstate == null)
+		setdstate(mkdstate(this.cstate, this.ostate));
 	    return(dstate);
 	}
 
@@ -737,24 +722,6 @@ public class RenderTree implements RenderList.Adapter, Disposable {
 	    @SuppressWarnings("unchecked")
 	    public <T extends State> T get(State.Slot<T> slot) {
 		DepInfo bk = dstate();
-		if(bk == null) {
-		    // dstate is null - this means:
-		    // 1. Slot is being removed (pidx < 0, handled in dstate())
-		    // 2. Parent is unavailable/uninitialized (mkdstate() failed)
-		    // 3. Race condition during concurrent update
-		    // Try to get state from parent as fallback
-		    if(parent != null) {
-			try {
-			    return(parent.istate().get(slot));
-			} catch(Exception e) {
-			    // Parent also unavailable - return null to allow graceful degradation
-			    // GroupPipe.states() handles null states properly
-			    return(null);
-			}
-		    }
-		    // No parent available, return null
-		    return(null);
-		}
 		int idx = slot.id;
 		if((bk.states.length <= idx) || !bk.def[idx])
 		    throw(new RuntimeException("Reading undefined slot " + slot + " from slot-pipe"));

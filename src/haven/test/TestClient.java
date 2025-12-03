@@ -114,69 +114,103 @@ public class TestClient implements Runnable, UI.Context {
 		}
 	    }
 	    
-	    // Special handling for gameui to ensure it gets created even if there are errors
+	    // Special handling for gameui - create synchronously to ensure ui.gui is set immediately
 	    if ("gameui".equals(type)) {
-		try {
-		    super.newwidget(id, type, parent, pargs, cargs);
-		    Widget w = getwidget(id);
-		    if (w != null && w instanceof GameUI) {
-			System.out.println("[TestClient] GameUI widget created successfully!");
-			if (gui != null) {
-			    System.out.println("[TestClient] GameUI set in UI.gui - server should now send gobs!");
-			} else {
-			    System.out.println("[TestClient] WARNING: GameUI widget created but UI.gui is still null!");
-			}
-		    } else {
-			System.out.println("[TestClient] ERROR: GameUI widget creation returned null or wrong type!");
-		    }
-		} catch (Exception e) {
-		    System.err.println("[TestClient] ERROR creating GameUI widget: " + e.getMessage());
-		    System.err.println("[TestClient] Attempting to create minimal GameUI stub...");
-		    e.printStackTrace();
+		if (cargs.length >= 2) {
+		    String chrid = (String)cargs[0];
+		    long plid = Utils.uiv(cargs[1]);
+		    String genus = cargs.length > 2 ? (String)cargs[2] : "";
 		    
-		    // Try to create a minimal GameUI stub to satisfy the server
-		    // This allows the server to think GameUI exists and send gobs
+		    System.out.println("[TestClient] Creating GameUI synchronously: chrid=" + chrid + ", plid=" + plid + ", genus=" + genus);
+		    
 		    try {
-			if (cargs.length >= 2) {
-			    String chrid = (String)cargs[0];
-			    long plid = Utils.uiv(cargs[1]);
-			    String genus = cargs.length > 2 ? (String)cargs[2] : "";
-			    
-			    System.out.println("[TestClient] Creating GameUI with: chrid=" + chrid + ", plid=" + plid + ", genus=" + genus);
-			    
-			    // Create GameUI directly (bypassing widget factory to avoid resource loading issues)
-			    // This will still try to load resources, but we catch errors
-			    GameUI gui = new GameUI(chrid, plid, genus);
-			    
-			    // Use public API to register the widget
-			    // bind() is public and will register the widget in the widgets map
-			    bind(gui, id);
-			    
-			    // Add to parent using public addwidget() method
-			    if (parent != -1) {
-				addwidget(id, parent, pargs);
-			    } else if (root != null) {
-				// If no parent specified, add to root
-				addwidget(id, 0, pargs); // 0 is root widget ID
+			// Create GameUI synchronously (bypassing async CommandQueue)
+			GameUI gui = new GameUI(chrid, plid, genus);
+			
+			// Set up widget attachment manually (since attach() is protected)
+			// We replicate what GameUI.attach() does: set ui reference and call setGUI()
+			synchronized(this) {
+			    gui.ui = this;        // Set widget's UI reference (public field)
+			    // Recursively set ui for all children (replicating Widget.attach() behavior)
+			    for (Widget ch = gui.child; ch != null; ch = ch.next) {
+				ch.ui = this;
+				// Recursively attach grandchildren
+				for (Widget gch = ch.child; gch != null; gch = gch.next) {
+				    gch.ui = this;
+				}
 			    }
-			    
-			    // Set GameUI in UI so server knows it exists
-			    setGUI(gui);
-			    System.out.println("[TestClient] Minimal GameUI created and set! Server should now send gobs.");
+			    setGUI(gui);          // Set UI's gui reference (this is what GameUI.attach() does)
+			    bind(gui, id);        // Register widget in widgets map
 			}
-		    } catch (Exception e2) {
-			System.err.println("[TestClient] Failed to create minimal GameUI stub: " + e2.getMessage());
-			System.err.println("[TestClient] This may prevent the server from sending gobs.");
-			e2.printStackTrace();
-			// Don't re-throw - let the widget creation fail but continue
-			// The server might still send gobs if it thinks GameUI was requested
+			
+			// Add to parent widget - this will call added() and attached() hooks
+			if (parent != -1) {
+			    Widget pwdg = getwidget(parent);
+			    if (pwdg != null) {
+				pwdg.addchild(gui, pargs);
+			    } else {
+				// Parent not ready yet, use async addwidget
+				addwidget(id, parent, pargs);
+			    }
+			} else if (root != null) {
+			    // No parent specified, add to root
+			    root.addchild(gui, pargs);
+			}
+			
+			// Verify ui.gui is set
+			if (this.gui != null && this.gui == gui) {
+			    System.out.println("[TestClient] GameUI created and attached successfully! ui.gui is set - server should now send gobs!");
+			} else {
+			    System.err.println("[TestClient] WARNING: GameUI created but ui.gui not properly set!");
+			    // Force set it as fallback
+			    setGUI(gui);
+			    System.out.println("[TestClient] Forced ui.gui set as fallback");
+			}
+			
+			// Notify robots
+			synchronized(robots) {
+			    for(Robot r : robots)
+				r.newwdg(id, gui, cargs);
+			}
+			
+		    } catch (Exception e) {
+			System.err.println("[TestClient] ERROR creating GameUI synchronously: " + e.getMessage());
+			System.err.println("[TestClient] Falling back to async creation...");
+			e.printStackTrace();
+			
+			// Fallback to async creation
+			try {
+			    super.newwidget(id, type, parent, pargs, cargs);
+			    // Wait a bit for async creation
+			    int waited = 0;
+			    while (waited < 50 && (getwidget(id) == null || this.gui == null)) {
+				Thread.sleep(100);
+				waited++;
+			    }
+			    Widget w = getwidget(id);
+			    if (w != null && w instanceof GameUI && this.gui != null) {
+				System.out.println("[TestClient] GameUI created via async fallback! ui.gui is set.");
+			    } else {
+				System.err.println("[TestClient] Async fallback also failed - ui.gui still null");
+			    }
+			} catch (Exception e2) {
+			    System.err.println("[TestClient] Async fallback also failed: " + e2.getMessage());
+			    e2.printStackTrace();
+			}
+			
+			// Notify robots even if creation had issues
+			Widget w = getwidget(id);
+			if (w != null) {
+			    synchronized(robots) {
+				for(Robot r : robots)
+				    r.newwdg(id, w, cargs);
+			    }
+			}
 		    }
-		}
-		
-		Widget w = getwidget(id);
-		synchronized(robots) {
-		    for(Robot r : robots)
-			r.newwdg(id, w, cargs);
+		} else {
+		    System.err.println("[TestClient] ERROR: GameUI creation requires at least 2 cargs (chrid, plid)");
+		    // Fall through to normal widget creation
+		    super.newwidget(id, type, parent, pargs, cargs);
 		}
 	    } else {
 		// Normal widget creation for non-gameui widgets
@@ -201,6 +235,32 @@ public class TestClient implements Runnable, UI.Context {
 		    throw e;
 		}
 	    }
+	}
+	
+	@Override
+	public void addwidget(int id, int parent, Object... pargs) {
+	    // Handle MapView creation - server sends mapview widget to be added to GameUI
+	    if (pargs.length > 0 && pargs[0] instanceof String) {
+		String place = ((String)pargs[0]).intern();
+		if (place == "mapview") {
+		    Widget child = getwidget(id);
+		    Widget pwdg = getwidget(parent);
+		    
+		    if (child instanceof MapView && pwdg instanceof GameUI) {
+			System.out.println("[TestClient] MapView widget (id=" + id + ") being added to GameUI (id=" + parent + ")");
+			// Call GameUI.addchild() directly with mapview place
+			((GameUI)pwdg).addchild(child, pargs);
+			System.out.println("[TestClient] MapView added to GameUI successfully! Server should now send gobs.");
+			return;
+		    } else {
+			System.out.println("[TestClient] WARNING: MapView addchild - child=" + (child != null ? child.getClass().getSimpleName() : "null") + 
+					   ", parent=" + (pwdg != null ? pwdg.getClass().getSimpleName() : "null"));
+		    }
+		}
+	    }
+	    
+	    // For all other widgets, use normal async addwidget
+	    super.addwidget(id, parent, pargs);
 	}
 	
 	public void destroy(Widget w) {
