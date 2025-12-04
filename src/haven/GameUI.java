@@ -375,6 +375,9 @@ public class GameUI extends ConsoleHost implements Console.Directory, UI.Notice.
 	this.chrid = chrid;
 	this.plid = plid;
 	this.genus = genus;
+        if(MappingClient.initialized()) {
+            MappingClient.getInstance().setGenus(genus);
+        }
 	setcanfocus(true);
 	setfocusctl(true);
 	chat = new ChatUI();
@@ -524,6 +527,7 @@ public class GameUI extends ConsoleHost implements Console.Directory, UI.Notice.
 	@Override
 	protected void attach(UI ui) {
 		ui.setGUI(this);
+        ui.sess.user.genus = genus;
 		super.attach(ui);
 	}
 	@Override
@@ -1077,6 +1081,18 @@ public class GameUI extends ConsoleHost implements Console.Directory, UI.Notice.
 		MapFile file;
 		try {
 		    file = MapFile.load(mapstore, mapfilename());
+            if(OptWnd.uploadMapTilesCheckBox.a && MappingClient.initialized()) {
+                MappingClient.getInstance().setGenus(genus);
+                MappingClient.getInstance().ProcessMap(file, (m) -> {
+                            if(m instanceof MapFile.PMarker) {
+						Color markerColor = ((MapFile.PMarker)m).color;
+						Boolean isColorEnabled = OptWnd.colorCheckboxesMap.get(markerColor);
+						return isColorEnabled != null && isColorEnabled;
+					}
+                    return true;
+                });
+            }
+
 //			if(OptWnd.uploadMapTilesCheckBox.a && MappingClient.getInstance() != null) {
 //				MappingClient.getInstance().ProcessMap(file, (m) -> {
 //					if(m instanceof MapFile.PMarker) {

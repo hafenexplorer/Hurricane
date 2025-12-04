@@ -43,6 +43,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -4300,12 +4301,13 @@ public class OptWnd extends Window {
 	public static CheckBox uploadMapTilesCheckBox;
 	public static CheckBox sendLiveLocationCheckBox;
 	public static TextEntry liveLocationNameTextEntry;
-//	public static Map<Color, Boolean> colorCheckboxesMap = new HashMap<>();
-//	static {
-//		for (Color color : BuddyWnd.gc) {
-//			colorCheckboxesMap.put(color, Utils.getprefb("enableMarkerUpload" + color.getRGB(), false));
-//		}
-//	}
+    public static CheckBox sendFoodCheckBox;
+	public static Map<Color, Boolean> colorCheckboxesMap = new HashMap<>();
+	static {
+		for (Color color : BuddyWnd.gc) {
+			colorCheckboxesMap.put(color, Utils.getprefb("enableMarkerUpload" + color.getRGB(), false));
+		}
+	}
 
 	public class ServerIntegrationSettingsPanel extends Panel {
 
@@ -4336,6 +4338,14 @@ public class OptWnd extends Window {
 			}, prev.pos("bl").adds(0, 12));
 			sendLiveLocationCheckBox.tooltip = sendLiveLocationTooltip;
 
+            prev = add(sendFoodCheckBox = new CheckBox("Send Food Data to your Web Map Server"){
+                {a = Utils.getprefb("enableFoodTracking", false);}
+                public void changed(boolean val) {
+                    Utils.setprefb("enableFoodTracking", val);
+                }
+            }, prev.pos("bl").adds(0, 12));
+            sendFoodCheckBox.tooltip = sendFoodTooltip;
+
 			prev = add(new Label("Your Live Location Name (Req. Relog):"), prev.pos("bl").adds(20, 4));
 			prev.tooltip = liveLocationNameTooltip;
 			prev = add(liveLocationNameTextEntry = new TextEntry(UI.scale(96), Utils.getpref("liveLocationName", "")){
@@ -4354,34 +4364,133 @@ public class OptWnd extends Window {
                     super.changed();
                 }
             }, prev.pos("ur").adds(16, 0));
-//			prev = add(new Label("Markers to upload:"), prev.pos("bl").adds(0, 20).x(0));
-//
-//			for (Map.Entry<Color, Boolean> entry : colorCheckboxesMap.entrySet()) {
-//				Color color = entry.getKey();
-//				boolean isChecked = entry.getValue();
-//
-//				CheckBox colorCheckbox = new CheckBox(""){
-//					{a = isChecked;}
-//					@Override
-//					public void draw(GOut g) {
-//						g.chcolor(color);
-//						g.frect(Coord.z.add(0, (sz.y - box.sz().y) / 2), box.sz());
-//						g.chcolor();
-//						if(state())
-//							g.image(mark, Coord.z.add(0, (sz.y - mark.sz().y) / 2));
-//					}
-//
-//					public void set(boolean val) {
-//						Utils.setprefb("enableMarkerUpload" + color.getRGB(), val);
-//						colorCheckboxesMap.put(color, val);
-//						a = val;
-//					}
-//				};
-//				prev = add(colorCheckbox, prev.pos("ur").adds(10, 0));
-//			}
+
+			prev = add(new Label("Markers to upload:"), prev.pos("bl").adds(0, 20).x(0));
+
+			for (Map.Entry<Color, Boolean> entry : colorCheckboxesMap.entrySet()) {
+				Color color = entry.getKey();
+				boolean isChecked = entry.getValue();
+
+				CheckBox colorCheckbox = new CheckBox(""){
+					{a = isChecked;}
+					@Override
+					public void draw(GOut g) {
+						g.chcolor(color);
+						g.frect(Coord.z.add(0, (sz.y - box.sz().y) / 2), box.sz());
+						g.chcolor();
+						if(state())
+							g.image(mark, Coord.z.add(0, (sz.y - mark.sz().y) / 2));
+					}
+
+					public void set(boolean val) {
+						Utils.setprefb("enableMarkerUpload" + color.getRGB(), val);
+						colorCheckboxesMap.put(color, val);
+						a = val;
+					}
+				};
+				prev = add(colorCheckbox, prev.pos("ur").adds(10, 0));
+			}
+            Label mappingLabel = new Label("Mapping URL: Re-Enable options");
+            prev = add(mappingLabel, prev.pos("bl").adds(0, 16).x(0));
+
+            add(new Button(UI.scale(100), "Save", false) {
+                @Override
+                public void click() {
+                    try {
+                        // Only initialize if not already initialized (like KamiClient)
+                        boolean setUsername = false;
+                        if (!MappingClient.initialized() && ui.sess.user.name != null && ui.sess.user.name.length() > 0) {
+                            MappingClient.init(ui.sess.glob);
+                            setUsername = true;
+                        }
+
+                        MappingClient automapper = MappingClient.getInstance();
+
+                        // Get genus from GameUI (most reliable)
+                        String genus = null;
+                        if (ui.gui != null && ui.gui instanceof GameUI) {
+                            GameUI gui = (GameUI) ui.gui;
+                            if (gui.genus != null && !gui.genus.isEmpty()) {
+                                genus = gui.genus;
+                                // Also copy to user object for future use
+                                if (ui.sess.user != null) {
+                                    ui.sess.user.genus = genus;
+                                }
+                            }
+                        }
+                        // Fallback to Session.User
+                        if (genus == null && ui.sess.user != null && ui.sess.user.genus != null && !ui.sess.user.genus.isEmpty()) {
+                            genus = ui.sess.user.genus;
+                        }
+                        if (genus != null && !genus.isEmpty()) {
+                            automapper.setGenus(genus);
+                            System.out.println("MappingClient: Set genus = '" + genus + "'");
+                        }
+
+                        // Set username only on first initialization
+                        if (setUsername && ui.sess.user != null && ui.sess.user.name != null && !ui.sess.user.name.isEmpty()) {
+                            automapper.SetPlayerName(ui.sess.user.name);
+                        }
+
+                        // Update endpoint from UI (which syncs to preferences)
+                        String endpoint = OptWnd.webmapEndpointTextEntry != null ? OptWnd.webmapEndpointTextEntry.buf.line() : "";
+                        if (endpoint != null && !endpoint.trim().isEmpty()) {
+                            automapper.SetEndpoint(endpoint);
+                        }
+
+                        // Update player name with optional custom name
+            //            if (ui.sess.user != null && ui.sess.user.name != null && !ui.sess.user.name.isEmpty()) {
+            //                String playerName = ui.sess.user.name;
+            //               if (OptWnd.liveLocationNameTextEntry != null && OptWnd.liveLocationNameTextEntry.buf.line() != null && !OptWnd.liveLocationNameTextEntry.buf.line().isEmpty()) {
+            //                    playerName = OptWnd.liveLocationNameTextEntry.buf.line() + " (" + playerName + ")";
+            //                }
+            //                automapper.SetPlayerName(playerName);
+            //            }
+
+                        // Update player name - use custom name if entered, otherwise character name
+                        if (ui.sess.user != null && ui.sess.user.name != null && !ui.sess.user.name.isEmpty()) {
+                            String customName = OptWnd.liveLocationNameTextEntry != null && OptWnd.liveLocationNameTextEntry.buf.line() != null
+                                    ? OptWnd.liveLocationNameTextEntry.buf.line().trim()
+                                    : "";
+                            String playerName = (customName != null && !customName.isEmpty())
+                                    ? customName
+                                    : ui.sess.user.name;
+                            automapper.SetPlayerName(playerName);
+                        }
+
+                        // Update settings from current checkbox states
+                        boolean uploadTiles = uploadMapTilesCheckBox != null && uploadMapTilesCheckBox.a;
+                        boolean sendLocation = sendLiveLocationCheckBox != null && sendLiveLocationCheckBox.a;
+                        automapper.EnableGridUploads(uploadTiles);
+                        automapper.EnableTracking(sendLocation);
+
+                        // Update label with endpoint status and genus
+                        boolean isValid = automapper.CheckEndpoint();
+                        String labelText = "Mapping URL: " + (isValid ? "Valid" : "Invalid");
+                        if (genus != null && !genus.isEmpty()) {
+                            labelText += " | Genus: " + genus;
+                        }
+                        mappingLabel.settext(labelText);
+
+                        if (ui != null && ui.gui != null) {
+                            String msg = "Mapping settings saved! Endpoint: " + (isValid ? "Valid" : "Invalid");
+                            if (genus != null && !genus.isEmpty()) {
+                                msg += " | Genus: " + genus;
+                            }
+                            ui.gui.msg(msg, isValid ? Color.GREEN : Color.YELLOW);
+                        }
+                    } catch (Exception ex) {
+                        System.out.println("MappingClient Save Error: " + ex.getMessage());
+                        ex.printStackTrace();
+                        if (ui != null && ui.gui != null) {
+                            ui.gui.msg("Error saving mapping settings: " + ex.getMessage(), Color.RED);
+                        }
+                    }
+                }
+            }, prev.pos("ur").adds(-50, 22));
 
 			Widget backButton;
-			add(backButton = new PButton(UI.scale(200), "Back", 27, back, "Advanced Settings"), prev.pos("bl").adds(0, 18).x(0));
+			add(backButton = new PButton(UI.scale(100), "Back", 27, back, "Advanced Settings"), prev.pos("bl").adds(0, 32).x(0));
 			pack();
 			centerBackButton(backButton, this);
 		}
@@ -5099,6 +5208,7 @@ public class OptWnd extends Window {
 	// Server Integration Settings Tooltips
 	private static final Object uploadMapTilesTooltip = RichText.render("Enable this to upload your map tiles to your web map server.", UI.scale(300));
 	private static final Object sendLiveLocationTooltip = RichText.render("Enable this to show your current location on your web map server.", UI.scale(320));
+    private static final Object sendFoodTooltip = RichText.render("Enable this to upload your food to your web map server.", UI.scale(320));
 	private static final Object liveLocationNameTooltip = RichText.render("If you send your location to the server, your name will appear as whatever you set in this text entry + your current character name." +
 			"\n" +
 			"\n$col[218,163,0]{For example:} Nightdawg (VillageCrafter)$col[185,185,185]{, where }\"Nightdawg\" $col[185,185,185]{is the name I set in this text entry, and} \"VillageCrafter\" $col[185,185,185]{is the character's original name." +

@@ -92,7 +92,8 @@
 	<pathelement path="lib/ext/lwjgl/lwjgl-opengl-fat.jar" />
 	<pathelement path="lib/ext/steamworks/steamworks4j.jar" />
 	<pathelement path="lib/jglob.jar" />
-      <pathelement path="lib/rxjava-1.1.5.jar" />
+    <pathelement path="lib/gson-2.8.6.jar" />
+    <pathelement path="lib/rxjava-1.1.5.jar" />
     <pathelement path="lib/sqlite-jdbc-3.42.0.0.jar" />
       </classpath>
       <compilerarg if:set="explicit-annotations" value="-proc:full" />
@@ -117,6 +118,9 @@
     <unjar src="lib/jglob.jar" dest="build/classes-lib">
       <patternset excludes="META-INF/**" />
     </unjar>
+    <unjar src="lib/gson-2.8.6.jar" dest="build/classes-lib">
+          <patternset excludes="META-INF/**" />
+    </unjar>
   </target>
 
   <target name="jar" depends="hafen-client, buildinfo, lib-classes">
@@ -127,7 +131,7 @@
         <fileset dir="." includes="res/**" />
         <manifest>
 	<attribute name="Main-Class" value="haven.MainFrame" />
-	<attribute name="Class-Path" value="jogl-all.jar gluegen-rt.jar lwjgl-fat.jar lwjgl-awt.jar lwjgl-opengl-fat.jar steamworks4j.jar builtin-res.jar hafen-res.jar sqlite-jdbc-3.42.0.0.jar" />
+	<attribute name="Class-Path" value="jogl-all.jar gluegen-rt.jar lwjgl-fat.jar lwjgl-awt.jar lwjgl-opengl-fat.jar steamworks4j.jar builtin-res.jar hafen-res.jar sqlite-jdbc-3.42.0.0.jar gson-2.8.6.jar" />
     <attribute name="Enable-Native-Access" value="ALL-UNNAMED" />
       </manifest>
     </jar>
@@ -168,6 +172,7 @@
       </fileset>
       <fileset dir="lib">
     <include name="sqlite-jdbc-3.42.0.0.jar"/>
+    <include name="gson-2.8.6.jar"/>
       </fileset>
       <fileset dir="lib/ext">
 	<include name="hafen-res.jar" />

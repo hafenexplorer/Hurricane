@@ -65,10 +65,12 @@ public class Session implements Resource.Resolver {
     public SignKey sesskey;
     private boolean closed = false;
 	public UI ui;
+    private int localCacheId = -1;
 
     public static class User {
 	public final String name;
 	public String alias = null, readname = null, prsname = null;
+    public String genus;
 
 	public User(String name) {
 	    this.name = name;
@@ -141,7 +143,7 @@ public class Session implements Resource.Resolver {
 	}
 
 	private class Ref implements Indir<Resource> {
-	    private Resource res;
+	    protected Resource res;
 
 	    public Resource get() {
 		if(res == null) {
@@ -192,6 +194,20 @@ public class Session implements Resource.Resolver {
 		wq.wnotify();
 	    }
 	}
+        private class SRef extends Ref {
+            public SRef(Resource res) {
+                this.res = res;
+            }
+        }
+
+        public void set(Resource res){
+            synchronized(this) {
+                this.resnm = res.name;
+                this.resver = res.ver;
+                ind = new WeakReference<Ref>(new SRef(res));
+                notifyAll();
+            }
+        }
     }
 
     private CachedRes cachedres(int id) {
@@ -211,6 +227,15 @@ public class Session implements Resource.Resolver {
 	return(res.get());
     }
 
+    private int cacheres(String resname){
+        return cacheres(Resource.local().loadwait(resname));
+    }
+
+    private int cacheres(Resource res){
+        cachedres(--localCacheId).set(res);
+        return localCacheId;
+    }
+
     public Indir<Resource> getres(int id) {
 	return(getres(id, 0));
     }
@@ -220,6 +245,14 @@ public class Session implements Resource.Resolver {
     }
 
     public final Function<Object, Object> resmapper = new ResID.ResolveMapper(this);
+
+    public int getresidf(Resource res) {
+        int id = getresid(res);
+        if(id == -1) {
+            id = cacheres(res);
+        }
+        return id;
+    }
 
     private void handlerel(PMessage msg) {
 	if((msg.type == RMessage.RMSG_NEWWDG) || (msg.type == RMessage.RMSG_WDGMSG) ||

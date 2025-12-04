@@ -729,12 +729,19 @@ public class Gob implements RenderTree.Node, Sprite.Owner, Skeleton.ModOwner, Eq
 	if(m != null)
 		m.move(c);
 	this.gobSpeed = m != null ? m.getv() : 0;
-		if(isMe != null && isMe && MappingClient.getInstance() != null) {
-			if (OptWnd.uploadMapTilesCheckBox.a)
-				MappingClient.getInstance().CheckGridCoord(c);
-			if (OptWnd.sendLiveLocationCheckBox.a)
-				MappingClient.getInstance().Track(id, c);
-		}
+        if(isMe != null && isMe) {
+            try {
+                MappingClient automapper = MappingClient.getInstance();
+                if (automapper != null) {
+                    if (OptWnd.uploadMapTilesCheckBox != null && OptWnd.uploadMapTilesCheckBox.a)
+                        automapper.CheckGridCoord(c);
+                    if (OptWnd.sendLiveLocationCheckBox != null && OptWnd.sendLiveLocationCheckBox.a)
+                        automapper.Track(id, c);
+                }
+            } catch (Exception e) {
+                // MappingClient not initialized yet, ignore
+            }
+        }
 	this.rc = c;
 	this.a = a;
     }

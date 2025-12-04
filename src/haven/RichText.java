@@ -763,6 +763,10 @@ public class RichText extends Text {
 	    aline(line, y);
 	    return(fp);
 	}
+        public static String color(String text, Color c) {
+            if(text == null) {return null;}
+            return String.format("$col[%d,%d,%d]{%s}", c.getRed(), c.getGreen(), c.getBlue(), text);
+        }
 
 	private static Coord bounds(Part fp) {
 	    Coord sz = new Coord(0, 0);
