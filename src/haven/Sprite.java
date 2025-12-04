@@ -40,6 +40,9 @@ public abstract class Sprite implements RenderTree.Node, PView.Render2D {
     public static List<Factory> factories = new LinkedList<Factory>();
     static {
 	factories.add(SpriteLink.sfact);
+    factories.add(SkelSprite.fact);
+    factories.add(AnimSprite.fact);
+    factories.add(StaticSprite.fact);
 	factories.add(ModSprite.fact);
 	factories.add(AudioSprite.fact);
     }
