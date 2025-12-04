@@ -80,7 +80,16 @@ public class Resource implements Serializable {
 	    return(o.name.equals(this.name) && (o.ver == this.ver));
 	}
 
-	public int hashCode() {
+        public Resource loadsaved() {
+            return loadsaved(Resource.remote());
+        }
+
+        public Resource loadsaved(Pool pool) {
+            return Resource.loadsaved(pool, this);
+        }
+
+
+        public int hashCode() {
 	    int ret = name.hashCode();
 	    ret = (ret * 31) + ver;
 	    return(ret);
@@ -1029,7 +1038,7 @@ public class Resource implements Serializable {
 	for(Class<?> cl : dolda.jglob.Loader.get(LayerName.class).classes()) {
 	    String nm = cl.getAnnotation(LayerName.class).value();
 	    if(LayerFactory.class.isAssignableFrom(cl)) {
-		addltype(nm, Utils.construct(cl.asSubclass(LayerFactory.class)));
+            addltype(nm, (LayerFactory<?>) Utils.construct(cl.asSubclass(LayerFactory.class)));
 	    } else if(Layer.class.isAssignableFrom(cl)) {
 		addltype(nm, cl.asSubclass(Layer.class));
 	    } else {
@@ -2086,6 +2095,16 @@ public class Resource implements Serializable {
 	    }
 	}
 	in.close();
+    }
+
+    public static Resource loadsaved(Resource.Pool pool, Named spec) {
+        try {
+            return (spec.get());
+        } catch (haven.Loading l) {
+            throw (l);
+        } catch (Exception e) {
+            return (pool.load(spec.name).get());
+        }
     }
 
     public static void dumplist(Collection<Resource> list, Writer dest) {
