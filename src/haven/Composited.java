@@ -253,10 +253,9 @@ public class Composited implements RenderTree.Node, EquipTarget {
 	    return(OwnerContext.orparent(cl, eqctxr.context(cl, this, false), eqowner));
 	}
 
-	@Deprecated
-	public Resource getres() {
-	    return(spr.res);
-	}
+    public Resource getres() {
+        return(spr.res);
+    }
 
 	public Random mkrandoom() {
 	    if(eqowner != null) {

@@ -1797,6 +1797,32 @@ public class MapView extends PView implements DTarget, Console.Directory, PFList
 	    g.chcolor(Color.WHITE);
 	    g.atext(text, sz.div(2), 0.5, 0.5);
 	}
+	if (OptWnd.drawPathfinderRouteCheckBox.a && pfthread != null && pfthread.isAlive()) {
+			try {
+				Gob player = player();
+				if (player != null && pf.pathWaypoints != null && pf.pathWaypoints.size() > 1) {
+					Coord2d nextCheckpoint = pf.pathWaypoints.get(1);
+					Coord playerScreen = screenxf(player.getc()).round2();
+					Coord targetScreen = screenxf(new Coord3f((float)nextCheckpoint.x, (float)nextCheckpoint.y, glob.map.getzp(nextCheckpoint).z)).round2();
+					g.chcolor(Color.BLUE);
+					g.line(playerScreen, targetScreen, 3);
+					g.chcolor(Color.CYAN);
+					g.line(playerScreen, targetScreen, 2);
+
+					for (int i = 1; i < pf.pathWaypoints.size() - 1; i++) {
+						Coord2d start = pf.pathWaypoints.get(i);
+						Coord2d end = pf.pathWaypoints.get(i + 1);
+						Coord startScreen = screenxf(new Coord3f((float)start.x, (float)start.y, glob.map.getzp(start).z)).round2();
+						Coord endScreen = screenxf(new Coord3f((float)end.x, (float)end.y, glob.map.getzp(end).z)).round2();
+						g.chcolor(Color.BLUE);
+						g.line(startScreen, endScreen, 3);
+						g.chcolor(Color.CYAN);
+						g.line(startScreen, endScreen, 2);
+					}
+				}
+			} catch (Exception ignored) {
+			}
+		}
 	if (OptWnd.drawYourCurrentPathCheckBox.a) {
 		try {
 			MapView mapView = ui.gui.map;
@@ -1824,6 +1850,7 @@ public class MapView extends PView implements DTarget, Console.Directory, PFList
 		} catch (Exception ignored) {
 		}
 	}
+
     }
     
     private double initload = -2;
@@ -2218,6 +2245,12 @@ public class MapView extends PView implements DTarget, Console.Directory, PFList
 					if(checkpointManager != null && checkpointManagerThread != null){
 						checkpointManager.pauseIt();
 					}
+                    synchronized (Pathfinder.class) {
+                        if (pf != null) {
+                            pf.terminate = true;
+                            pfthread.interrupt();
+                        }
+                    }
 					wdgmsg("click", args);
 					if (OptWnd.autoSelect1stFlowerMenuCheckBox.a) {
 						if (ui.modctrl) {
@@ -2237,17 +2270,21 @@ public class MapView extends PView implements DTarget, Console.Directory, PFList
 					switchToPlateBoots();
 				}
 			}
-		}
-		synchronized (Pathfinder.class) {
-			if (pf != null) {
-				pf.terminate = true;
-				pfthread.interrupt();
-			}
+            synchronized (Pathfinder.class) {
+                if (pf != null && clickb == 1) {
+                    pf.terminate = true;
+                    pfthread.interrupt();
+                }
+            }
 		}
 		if(checkpointManager != null && checkpointManagerThread != null && clickb == 1){
 			checkpointManager.pauseIt();
 		}
-	    wdgmsg("click", args);
+		if (OptWnd.walkWithPathFinderCheckBox.a && clickb == 1 && ui.modctrl && ui.modshift && !ui.modmeta && !ui.modsuper) {
+			pfLeftClick(mc.floor(), null);
+		} else {
+			wdgmsg("click", args);
+		}
 	}
 
 	public void clickedGob(Coord pc, Coord2d mc, ClickData inf){

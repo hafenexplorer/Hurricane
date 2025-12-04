@@ -254,6 +254,19 @@ public class GItem extends AWidget implements ItemInfo.SpriteOwner, GSprite.Owne
 	return(this.info);
     }
 
+
+
+	public boolean checkForHempBuff(){
+		for(Widget buff : ui.gui.buffs.children()){
+			if(buff instanceof Buff && ((Buff) buff).res != null){
+				if(((Buff) buff).res.get().name.equals("gfx/hud/buffs/ganja")){
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
     public Resource resource() {
 	return(res.get());
     }

@@ -63,6 +63,7 @@ public class GobIconsCustom {
 		put("gfx/terobjs/items/truffle-white2", "customclient/mapicons/whitetruffle");
 		put("gfx/terobjs/items/truffle-white3", "customclient/mapicons/whitetruffle");
 
+        put("gfx/terobjs/well", "customclient/mapicons/well");
     }};
 
 
