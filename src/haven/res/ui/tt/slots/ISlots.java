@@ -2,20 +2,20 @@
 package haven.res.ui.tt.slots;
 
 import haven.*;
-import haven.res.ui.tt.attrmod.*;
-
 import static haven.PUtils.*;
 import java.awt.image.*;
 import java.awt.Graphics;
 import java.awt.Font;
 import java.awt.Color;
 import java.util.*;
+import haven.res.ui.tt.attrmod.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+
 /* >tt: Fac */
-@haven.FromResource(name = "ui/tt/slots", version = 31)
+@haven.FromResource(name = "ui/tt/slots", version = 32)
 public class ISlots extends ItemInfo.Tip implements GItem.NumberInfo {
     public static final Text ch = Text.render("Gilding list:");
     public static final Text.Foundry progf = new Text.Foundry(Text.dfont.deriveFont(Font.ITALIC), 10, new Color(0, 169, 224));
@@ -24,9 +24,9 @@ public class ISlots extends ItemInfo.Tip implements GItem.NumberInfo {
     public final double pmin, pmax;
     public final Resource[] attrs;
     public final boolean ignol;
-	private UI ui = null;
-	static final Pattern integerStatPattern = Pattern.compile("\\{([+-]?\\d+)\\}");
-	static final Pattern percentageStatPattern = Pattern.compile("\\{([+-]?\\d*(\\.\\d+)?|\\d+)%\\}");
+    private UI ui = null;
+    static final Pattern integerStatPattern = Pattern.compile("\\{([+-]?\\d+)\\}");
+    static final Pattern percentageStatPattern = Pattern.compile("\\{([+-]?\\d*(\\.\\d+)?|\\d+)%\\}");
 
     public ISlots(Owner owner, int left, double pmin, double pmax, Resource[] attrs) {
 	super(owner);
@@ -36,13 +36,13 @@ public class ISlots extends ItemInfo.Tip implements GItem.NumberInfo {
 	this.attrs = attrs;
 	// XXX? Should the format be changed instead?
 	ignol = owner.fcontext(MenuGrid.class, false) != null;
-	if (owner instanceof GItem)
-		this.ui = ((GItem) owner).ui;
+    if (owner instanceof GItem)
+        this.ui = ((GItem) owner).ui;
     }
 
     public static final String chc = "192,192,255";
     public void layout(Layout l) {
-	boolean extendedView = ui == null || (ui != null && ui.modshift); // ND: There's a weird bug with barterstands. The UI from the Shopbox class doesn't detect ui.modshift or some crap.
+    boolean extendedView = ui == null || (ui != null && ui.modshift); // ND: There's a weird bug with barterstands. The UI from the Shopbox class doesn't detect ui.modshift or some crap.
 	l.cmp.add(ch.img, new Coord(UI.scale(2), l.cmp.sz.y + UI.scale(4)));
 	if(attrs.length > 0) {
 	    BufferedImage head = RichText.render(String.format("Chance: $col[%s]{%d%%} to $col[%s]{%d%%}", chc, Math.round(100 * pmin), chc, Math.round(100 * pmax)), 0).img;
@@ -128,9 +128,9 @@ public class ISlots extends ItemInfo.Tip implements GItem.NumberInfo {
 	}
 	if(left > 0)
 	    l.cmp.add(progf.render((left > 1)?String.format("Gildable \u00d7%d", left):"Gildable").img, new Coord(10, l.cmp.sz.y));
-	if (ui != null)
+    if (ui != null)
 		l.cmp.add(RichText.render(extendedView ? "$col[218,163,0]{<Showing expanded Gilding List>}" : "$col[185,185,185]{<Hold Shift to expand Gilding List>}", 0).img, new Coord(0, l.cmp.sz.y));
-	}
+    }
 
     public static final Object[] defn = {Loading.waitfor(Resource.classres(ISlots.class).pool.load("ui/tt/defn", 7))};
     public class SItem {
@@ -184,7 +184,7 @@ public class ISlots extends ItemInfo.Tip implements GItem.NumberInfo {
 	    GItem.NumberInfo.super.drawoverlay(g, tex);
     }
 
-	public static BufferedImage longtip(List<ItemInfo> info) { // ND: Added this here to overwrite method from ItemInfo and prevent an extra text stroke on contents tooltip
+    	public static BufferedImage longtip(List<ItemInfo> info) { // ND: Added this here to overwrite method from ItemInfo and prevent an extra text stroke on contents tooltip
 		if(info.isEmpty())
 			return(null);
 		Layout l = new Layout(info.get(0).owner);
@@ -204,4 +204,5 @@ public class ISlots extends ItemInfo.Tip implements GItem.NumberInfo {
 		String a2 =  o2.getKey().attr.name();
 		return Integer.compare(Config.statsAndAttributesOrder.indexOf(a2), Config.statsAndAttributesOrder.indexOf(a1));
 	}
+
 }
