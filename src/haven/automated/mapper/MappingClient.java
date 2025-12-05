@@ -129,17 +129,13 @@ public class MappingClient {
 
     public boolean CheckEndpoint() {
         try {
-            if (INSTANCE == null || endpoint == null || endpoint.isEmpty() || genus == null) {
+            if (INSTANCE == null)
                 return false;
-            }
             HttpURLConnection connection =
                     (HttpURLConnection) new URL(endpoint + "/checkVersion?version=4&genus=" + genus).openConnection();
             connection.setRequestMethod("GET");
-            //connection.setConnectTimeout(5000); /*** added connect and read timeout */
-            //connection.setReadTimeout(5000);
             return connection.getResponseCode() == 200;
         } catch (Exception ex) {
-            System.out.println("MappingClient: Endpoint check failed: " + ex.getMessage());
             return false;
         }
     }
@@ -267,31 +263,29 @@ public class MappingClient {
 
             @Override
             public void run() {
-                if(mapfile.lock.readLock().tryLock()) {
-                    try {
-                        List<MarkerData> markers = mapfile.markers.stream().map(m -> {
-                            Coord mgc = new Coord(Math.floorDiv(m.tc.x, 100), Math.floorDiv(m.tc.y, 100));
-                            Indir<MapFile.Grid> indirGrid = mapfile.segments.get(m.seg).grid(mgc);
-                            return new MarkerData(m, indirGrid);
-                        }).collect(Collectors.toList());
-                        System.out.println("collected " + markers.size() + " markers");
-
-                        scheduler.schedule(new ProcessMapper(mapfile, markers, genus), 15, TimeUnit.SECONDS);
-                    } catch (Exception ex)
-                    {
-                        System.out.println("Error while collection markers: " +ex);
-                    }
-                    mapfile.lock.readLock().unlock();
-                } else {
-                    if(retries-- > 0) {
-                        System.out.println("rescheduling upload");
-                        scheduler.schedule(this, 5, TimeUnit.SECONDS);
-                    }
-                }
+//		if (mapfile.lock.readLock().tryLock()) {
+//			try {
+//				List<MarkerData> markers = mapfile.markers.stream()
+//						.filter(uploadCheck)
+//						.map(m -> {
+//							Coord mgc = new Coord(Math.floorDiv(m.tc.x, 100), Math.floorDiv(m.tc.y, 100));
+//							Indir<MapFile.Grid> indirGrid = mapfile.segments.get(m.seg).grid(mgc);
+//							return new MarkerData(m, indirGrid);
+//						})
+//						.collect(Collectors.toList());
+//
+//				scheduler.execute(new ProcessMapper(mapfile, markers));
+//			} finally {
+//				mapfile.lock.readLock().unlock();
+//			}
+//		} else {
+//			if (retries-- > 0) {
+//				scheduler.schedule(this, 5, TimeUnit.SECONDS);
+//			}
+//		}
             }
+
         }
-
-
 
         private class MarkerData {
             MapFile.Marker m;
@@ -385,29 +379,20 @@ public class MappingClient {
 
             @Override
             public void run() {
-                if (endpoint == null || endpoint.isEmpty()) {
-                    System.out.println("MappingClient: Cannot upload markers - endpoint not set");
-                    return;
-                }
                 try {
                     HttpURLConnection connection =
-                            (HttpURLConnection) new URL(endpoint + "/markerUpdate").openConnection();
+                            (HttpURLConnection) new URL(OptWnd.webmapEndpointTextEntry.buf.line() + "/markerUpdate").openConnection();
                     connection.setRequestMethod("POST");
                     connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
                     connection.setDoOutput(true);
-                    //connection.setConnectTimeout(5000); /*** Added connect and read timeout */
-                    //connection.setReadTimeout(10000);
                     try (DataOutputStream out = new DataOutputStream(connection.getOutputStream())) {
                         final String json = data.toString();
                         out.write(json.getBytes(StandardCharsets.UTF_8));
                     }
                     int code = connection.getResponseCode();
                     connection.disconnect();
-                    if (code != 200) {
-                        System.out.println("MappingClient: Marker update failed with code " + code);
-                    }
                 } catch (Exception ex) {
-                    System.out.println("MappingClient: Error uploading markers: " + ex.getMessage());
+                    System.out.println(ex);
                 }
             }
         }
@@ -424,8 +409,8 @@ public class MappingClient {
                 public JSONObject getJSON() {
                     JSONObject j = new JSONObject();
                     j.put("name", name);
+                    j.put("name", name);
                     j.put("genus", genus); /*** Kami updates */
-                    j.put("type", type);  // ADD THIS LINE
                     j.put("gridID", String.valueOf(gridId));
                     JSONObject c = new JSONObject();
                     c.put("x", (int) (coords.x / 11));
@@ -473,7 +458,7 @@ public class MappingClient {
             public void run() {
                 if (spamCount == spamPreventionVal) {
                     spamCount = 0;
-                    if (trackingEnabled && endpoint != null && !endpoint.isEmpty()) {
+                    if (OptWnd.sendLiveLocationCheckBox.a) {
                         Glob g = glob;
                         Iterator<Map.Entry<Long, Tracking>> i = tracking.entrySet().iterator();
                         JSONObject upload = new JSONObject();
@@ -486,27 +471,19 @@ public class MappingClient {
                             }
                         }
 
-                        if (upload.length() > 0) {
-                            try {
-                                final HttpURLConnection connection =
-                                        (HttpURLConnection) new URL(endpoint + "/positionUpdate").openConnection();
-                                connection.setRequestMethod("POST");
-                                connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
-                                connection.setDoOutput(true);
-                                //connection.setConnectTimeout(5000); /*** Added connect and read timeout */
-                                //connection.setReadTimeout(10000);
-                                try (DataOutputStream out = new DataOutputStream(connection.getOutputStream())) {
-                                    final String json = upload.toString();
-                                    out.write(json.getBytes(StandardCharsets.UTF_8));
-                                }
-                                int responseCode = connection.getResponseCode();
-                                connection.disconnect();
-                                if (responseCode != 200) {
-                                    System.out.println("MappingClient: Position update failed with code " + responseCode);
-                                }
-                            } catch (final Exception ex) {
-                                System.out.println("MappingClient: Error sending position update: " + ex.getMessage());
+                        try {
+                            final HttpURLConnection connection =
+                                    (HttpURLConnection) new URL(OptWnd.webmapEndpointTextEntry.buf.line() + "/positionUpdate").openConnection();
+                            connection.setRequestMethod("POST");
+                            connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
+                            connection.setDoOutput(true);
+                            try (DataOutputStream out = new DataOutputStream(connection.getOutputStream())) {
+                                final String json = upload.toString();
+                                out.write(json.getBytes(StandardCharsets.UTF_8));
+                            } catch (Exception e) {
                             }
+                            connection.getResponseCode();
+                        } catch (final Exception ex) {
                         }
                     }
                 } else {
@@ -542,7 +519,7 @@ public class MappingClient {
 
             @Override
             public void run() {
-                if (gridEnabled) {
+                if (OptWnd.uploadMapTilesCheckBox.a) {
                     final String[][] gridMap = new String[3][3];
                     Map<String, WeakReference<MCache.Grid>> gridRefs = new HashMap<String, WeakReference<MCache.Grid>>();
                     try {
@@ -578,19 +555,16 @@ public class MappingClient {
 
             @Override
             public void run() {
-                if (gridEnabled) {
+                if (OptWnd.uploadMapTilesCheckBox.a) {
                     HashMap<String, Object> dataToSend = new HashMap<>();
 
                     dataToSend.put("grids", this.gridUpdate.grids);
-                    dataToSend.put("genus", this.genus);
                     try {
                         HttpURLConnection connection =
-                                (HttpURLConnection) new URL(endpoint + "/gridUpdate").openConnection();
+                                (HttpURLConnection) new URL(OptWnd.webmapEndpointTextEntry.buf.line() + "/gridUpdate").openConnection();
                         connection.setRequestMethod("POST");
                         connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
                         connection.setDoOutput(true);
-                        //connection.setConnectTimeout(5000); /*** Added connect and read timeout */
-                        //connection.setReadTimeout(15000);
                         try (DataOutputStream out = new DataOutputStream(connection.getOutputStream())) {
                             String json = new JSONObject(dataToSend).toString();
                             out.write(json.getBytes(StandardCharsets.UTF_8));
@@ -618,15 +592,12 @@ public class MappingClient {
                                 for (int i = 0; reqs2 != null && i < reqs2.length(); i++) {
                                     gridsUploader.execute(new GridOverlayUploadTask(reqs2.getString(i), gridUpdate.gridRefs.get(reqs2.getString(i)), genus));
                                 }
-                            } catch (Exception ex) {
-                                System.out.println("MappingClient: Error processing grid overlay requests: " + ex.getMessage());
                             }
-                        } else {
-                            System.out.println("MappingClient: Grid update failed");
+                            catch (Exception ex) {}
                         }
-                        connection.disconnect();
+
                     } catch (Exception ex) {
-                        System.out.println("MappingClient: Error sending grid update: " + ex.getMessage());
+                        System.out.println(ex);
                     }
                 }
             }
@@ -657,7 +628,7 @@ public class MappingClient {
                             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
                             ImageIO.write(image, "png", outputStream);
                             ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
-                            MultipartUtility multipart = new MultipartUtility(endpoint + "/gridUpload", "utf-8");
+                            MultipartUtility multipart = new MultipartUtility(OptWnd.webmapEndpointTextEntry.buf.line() + "/gridUpload", "utf-8");
                             multipart.addFormField("id", this.gridID);
                             multipart.addFilePart("file", inputStream, "minimap.png");
                             extraData.put("season", glob.ast.is);

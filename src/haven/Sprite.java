@@ -40,10 +40,9 @@ public abstract class Sprite implements RenderTree.Node, PView.Render2D {
     public static List<Factory> factories = new LinkedList<Factory>();
     static {
 	factories.add(SpriteLink.sfact);
-    factories.add(SkelSprite.fact);
-    factories.add(AnimSprite.fact);
-    factories.add(StaticSprite.fact);
-	factories.add(ModSprite.fact);
+	factories.add(SkelSprite.fact);
+	factories.add(AnimSprite.fact);
+	factories.add(StaticSprite.fact);
 	factories.add(AudioSprite.fact);
     }
 	protected Tex tex2d;
@@ -53,7 +52,7 @@ public abstract class Sprite implements RenderTree.Node, PView.Render2D {
 
     public interface Owner extends OwnerContext {
 	public Random mkrandoom();
-	Resource getres();
+	/*@Deprecated */public Resource getres();
     }
 
     public class RecOwner implements Owner {
@@ -76,7 +75,7 @@ public abstract class Sprite implements RenderTree.Node, PView.Render2D {
 
 	public Random mkrandoom() {return(new Random());}
 	public <T> T context(Class<T> cl) {return(Widget.wdgctx.context(cl, wdg));}
-	public Resource getres() {return(null);}
+	@Deprecated public Resource getres() {return(null);}
     }
 
     public static interface CDel {

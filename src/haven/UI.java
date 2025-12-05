@@ -1110,7 +1110,4 @@ public class UI {
 		return curs != null && curs.name.equals(name);
 	}
 
-	public Set<Widget> getAllWidgets() {
-		return rwidgets.keySet();
-	}
 }

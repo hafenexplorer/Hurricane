@@ -42,7 +42,6 @@ import java.util.stream.Collectors;
 
 import haven.automated.*;
 import haven.automated.mapper.MappingClient;
-import haven.automated.pathfinder.Pathfinder;
 import haven.render.Location;
 import haven.res.ui.stackinv.ItemStack;
 
@@ -142,6 +141,7 @@ public class GameUI extends ConsoleHost implements Console.Directory, UI.Notice.
 	private String myLastHealthBarText = "";
 	private Tex myStaminaBarTex = null;
 	private String myLastStaminaBarText = "";
+
     private static final Tex mapperWarning = PUtils.strokeTex(Text.renderstroked("You need to relog for the Webmap Integration to send data!", Color.RED, Color.BLACK, Text.num12boldFnd));
     private static final Tex mapperWarning2 = PUtils.strokeTex(Text.renderstroked("(This happens on newly created characters, or if you changed your endpoint)", Color.RED, Color.BLACK, Text.num12boldFnd));
 
@@ -176,14 +176,10 @@ public class GameUI extends ConsoleHost implements Console.Directory, UI.Notice.
 	public Thread turnipThread;
 	public CleanupBot cleanupBot;
 	public Thread cleanupThread;
-	public GrubGrubBot grubGrubBot;
-	public Thread grubGrubThread;
 	public CellarDiggingBot cellarDiggingBot;
 	public Thread cellarDiggingThread;
 	public RoastingSpitBot roastingSpitBot;
 	public Thread roastingSpitThread;
-	public FishingBot fishingBot;
-	public Thread fishingThread;
     public TunnelerBot tunnelerBot;
     public Thread tunnelerBotThread;
 
@@ -1444,10 +1440,11 @@ public class GameUI extends ConsoleHost implements Console.Directory, UI.Notice.
 			drawHealthMeterBar(g, hp, sc, msz);
 		}
 	}
-    if (statusWdg != null && !OptWnd.webmapEndpointTextEntry.text().isEmpty() && !MappingClient.initialized()) {
-        g.image(mapperWarning, new Coord(statusWdg.c.x - statusWdg.sz.x / 2 - mapperWarning.sz().x / 2, statusWdg.c.y + statusWdg.sz.y + mapperWarning.sz().y));
-        g.image(mapperWarning2, new Coord(statusWdg.c.x - statusWdg.sz.x / 2 - mapperWarning2.sz().x / 2, statusWdg.c.y + statusWdg.sz.y + mapperWarning.sz().y + mapperWarning2.sz().y));
-    }
+
+        if (statusWdg != null && !OptWnd.webmapEndpointTextEntry.text().isEmpty() && !MappingClient.initialized()) {
+            g.image(mapperWarning, new Coord(statusWdg.c.x - statusWdg.sz.x / 2 - mapperWarning.sz().x / 2, statusWdg.c.y + statusWdg.sz.y + mapperWarning.sz().y));
+            g.image(mapperWarning2, new Coord(statusWdg.c.x - statusWdg.sz.x / 2 - mapperWarning2.sz().x / 2, statusWdg.c.y + statusWdg.sz.y + mapperWarning.sz().y + mapperWarning2.sz().y));
+        }
     }
     
     private String iconconfname() {
@@ -1964,12 +1961,6 @@ public class GameUI extends ConsoleHost implements Console.Directory, UI.Notice.
 		}
 		return (true);
 	} else if (kb_clickNearestObject.key().match(ev)) {
-		synchronized (Pathfinder.class) {
-			if (map.pf != null) {
-				map.pf.terminate = true;
-				map.pfthread.interrupt();
-			}
-		}
 		if (interactWithNearestObjectThread == null) {
 			interactWithNearestObjectThread = new Thread(new InteractWithNearestObject(this), "InteractWithNearestObject");
 			interactWithNearestObjectThread.start();
@@ -1981,12 +1972,6 @@ public class GameUI extends ConsoleHost implements Console.Directory, UI.Notice.
 		}
 		return (true);
 	} else if (kb_clickNearestCursorObject.key().match(ev)) {
-		synchronized (Pathfinder.class) {
-			if (map.pf != null) {
-				map.pf.terminate = true;
-				map.pfthread.interrupt();
-			}
-		}
 		if (interactWithNearestObjectThread == null) {
 			interactWithNearestObjectThread = new Thread(new InteractWithCursorNearest(this), "InteractWithCursorNearest");
 			interactWithNearestObjectThread.start();
@@ -1998,12 +1983,6 @@ public class GameUI extends ConsoleHost implements Console.Directory, UI.Notice.
 		}
 		return (true);
 	} else if (kb_enterNearestVehicle.key().match(ev)) {
-		synchronized (Pathfinder.class) {
-			if (map.pf != null) {
-				map.pf.terminate = true;
-				map.pfthread.interrupt();
-			}
-		}
 		if (enterNearestVehicleThread == null) {
 			enterNearestVehicleThread = new Thread(new EnterNearestVehicle(this), "EnterNearestVehicle");
 			enterNearestVehicleThread.start();
@@ -2015,12 +1994,6 @@ public class GameUI extends ConsoleHost implements Console.Directory, UI.Notice.
 		}
 		return (true);
 	} else if (kb_wagonNearestLiftable.key().match(ev)) {
-		synchronized (Pathfinder.class) {
-			if (map.pf != null) {
-				map.pf.terminate = true;
-				map.pfthread.interrupt();
-			}
-		}
 		if (wagonNearestLiftableThread == null) {
 			wagonNearestLiftableThread = new Thread(new WagonNearestLiftable(this), "WagonNearestLiftable");
 			wagonNearestLiftableThread.start();

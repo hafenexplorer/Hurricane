@@ -228,6 +228,7 @@ public class Gob implements RenderTree.Node, Sprite.Owner, Skeleton.ModOwner, Eq
 	    .add(Overlay.class, o -> o);
 	public <T> T context(Class<T> cl) {return(OwnerContext.orparent(cl, ctxr.context(cl, this, false), gob));}
 	public Random mkrandoom() {return(gob.mkrandoom());}
+//	@Deprecated
 	public Resource getres() {return(gob.getres());}
 
 	public String getSprResName() {
@@ -728,19 +729,12 @@ public class Gob implements RenderTree.Node, Sprite.Owner, Skeleton.ModOwner, Eq
 	if(m != null)
 		m.move(c);
 	this.gobSpeed = m != null ? m.getv() : 0;
-        if(isMe != null && isMe) {
-            try {
-                MappingClient automapper = MappingClient.getInstance();
-                if (automapper != null) {
-                    if (OptWnd.uploadMapTilesCheckBox != null && OptWnd.uploadMapTilesCheckBox.a)
-                        automapper.CheckGridCoord(c);
-                    if (OptWnd.sendLiveLocationCheckBox != null && OptWnd.sendLiveLocationCheckBox.a)
-                        automapper.Track(id, c);
-                }
-            } catch (Exception e) {
-                // MappingClient not initialized yet, ignore
-            }
-        }
+		if(isMe != null && isMe && MappingClient.getInstance() != null) {
+			if (OptWnd.uploadMapTilesCheckBox.a)
+				MappingClient.getInstance().CheckGridCoord(c);
+			if (OptWnd.sendLiveLocationCheckBox.a)
+				MappingClient.getInstance().Track(id, c);
+		}
 	this.rc = c;
 	this.a = a;
     }
@@ -1042,6 +1036,7 @@ public class Gob implements RenderTree.Node, Sprite.Owner, Skeleton.ModOwner, Eq
 	return(Utils.mkrandoom(id));
     }
 
+//    @Deprecated
     public Resource getres() {
 	Drawable d = getattr(Drawable.class);
 	if(d != null)

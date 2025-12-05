@@ -26,7 +26,6 @@
 
 package haven;
 
-import haven.automated.GrubGrubBot;
 import haven.res.ui.tt.wear.Wear;
 import haven.res.ui.tt.armor.Armor;
 
@@ -413,15 +412,11 @@ public class Equipory extends Widget implements DTarget {
 				checkForLeeches = false;
 			}
 		}
-		if ((OptWnd.autoDropTicksCheckBox.a || GrubGrubBot.transferTicks) && myOwnEquipory && checkForTicks) {
+		if (OptWnd.autoDropTicksCheckBox.a && myOwnEquipory && checkForTicks) {
 			if ((now - delayedUpdateTime) > 300){
 				for (WItem equippedItem : slots) {
 					if (equippedItem != null && equippedItem.item != null && equippedItem.item.getname() != null && equippedItem.item.getname().contains("Tick")){
-						if(GrubGrubBot.transferTicks){ // ND: Override when grub-grub bot is running
-                            equippedItem.item.wdgmsg("transfer", new Coord(equippedItem.sz.x / 2, equippedItem.sz.y / 2));
-						} else {
-                            equippedItem.item.wdgmsg("drop", new Coord(equippedItem.sz.x / 2, equippedItem.sz.y / 2));
-						}
+						equippedItem.item.wdgmsg("drop", new Coord(equippedItem.sz.x / 2, equippedItem.sz.y / 2));
 					}
 				}
 				checkForTicks = false;

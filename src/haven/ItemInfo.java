@@ -26,8 +26,9 @@
 
 package haven;
 
-import haven.res.ui.tt.attrmod.*;
-import haven.res.ui.tt.ncont.NamedContents;
+import haven.res.ui.tt.attrmod.AttrMod;
+import haven.res.ui.tt.attrmod.Attribute;
+import haven.res.ui.tt.attrmod.Entry;
 
 import java.awt.*;
 import java.util.*;
@@ -40,40 +41,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public abstract class ItemInfo {
-    public static final int LEFT = 0;
-    public static final int CENTER = 1;
-    public static final int RIGHT = 2;
     public final Owner owner;
 	static final Pattern count_pattern = Pattern.compile("(?:^|[\\s])([0-9]*\\.?[0-9]+\\s*%?)");
 
-    public static ItemInfo make(Session sess, String resname, Object... args) {
-        Resource res = Resource.remote().load(resname).get();
-        InfoFactory f = res.layer(Resource.CodeEntry.class).get(InfoFactory.class);
-        return f.build(new SessOwner(sess), null, args);
-    }
-
     public interface Owner extends OwnerContext {
 	public List<ItemInfo> info();
-    }
-
-    private static class SessOwner implements ItemInfo.Owner {
-        private final OwnerContext.ClassResolver<SessOwner> ctxr;
-
-        public SessOwner(Session sess) {
-            ctxr = new OwnerContext.ClassResolver<SessOwner>()
-                    .add(Glob.class, x -> sess.glob)
-                    .add(Session.class, x -> sess);
-        }
-
-        @Override
-        public List<ItemInfo> info() {
-            return null;
-        }
-
-        @Override
-        public <T> T context(Class<T> cl) {
-            return (ctxr.context(cl, this));
-        }
     }
 
     public interface ResOwner extends Owner {
@@ -154,6 +126,12 @@ public abstract class ItemInfo {
 	    public T make(Owner owner);
 	}
 
+	@Deprecated
+	public interface ID<T extends Tip> extends TipID<T> {
+	    public T make();
+	    public default T make(Owner owner) {return(make());}
+	}
+
 	@SuppressWarnings("unchecked")
 	public <T extends Tip> T intern(TipID<T> id) {
 	    T ret = (T)itab.get(id);
@@ -162,6 +140,10 @@ public abstract class ItemInfo {
 		add(ret);
 	    }
 	    return(ret);
+	}
+
+	public <T extends Tip> T intern(ID<T> id) {
+	    return(intern((TipID<T>)id));
 	}
 
 	public void add(Tip tip) {
@@ -374,26 +356,6 @@ public abstract class ItemInfo {
 
     }
 
-    public static ItemData.Content getContent(List<ItemInfo> infos) {
-        Contents contents = find(Contents.class, infos);
-        if(contents != null) {
-            Name name = find(Name.class, contents.sub);
-            if(name != null) {
-                return ItemData.Content.parse(name.original, QualityList.make(contents.sub));
-            }
-        } else {
-            NamedContents namedContents = find(NamedContents.class, infos);
-            if(namedContents != null) {
-                return ItemData.Content.parse(namedContents.name, QualityList.make(namedContents.sub));
-            }
-        }
-
-        return ItemData.Content.EMPTY;
-    }
-    public static BufferedImage catimgs(int margin, boolean right, BufferedImage... imgs) {
-        return catimgs(margin, right ? RIGHT : LEFT, imgs);
-
-    }
     public static BufferedImage catimgs(int margin, BufferedImage... imgs) {
 	int w = 0, h = -margin;
 	for(BufferedImage img : imgs) {
@@ -560,26 +522,17 @@ public abstract class ItemInfo {
     }
 
     public static class AttrCache<R> implements Indir<R> {
-	    private final Supplier<List<ItemInfo>> from;
-	    private final Function<List<ItemInfo>, Supplier<R>> data;
-        private final R def;
-        private List<ItemInfo> forinfo = null;
-	    private Supplier<R> save;
+	private final Supplier<List<ItemInfo>> from;
+	private final Function<List<ItemInfo>, Supplier<R>> data;
+	private List<ItemInfo> forinfo = null;
+	private Supplier<R> save;
 
-	    public AttrCache(Supplier<List<ItemInfo>> from, Function<List<ItemInfo>, Supplier<R>> data, R def) {
-	        this.from = from;
-	        this.data = data;
-            this.def = def;
-	    }
+	public AttrCache(Supplier<List<ItemInfo>> from, Function<List<ItemInfo>, Supplier<R>> data) {
+	    this.from = from;
+	    this.data = data;
+	}
 
-        public AttrCache(Supplier<List<ItemInfo>> from, Function<List<ItemInfo>, Supplier<R>> data) {
-            this(from, data, null);
-        }
-
-        public R get() {
-            return get(def);
-        }
-        public R get(R def) {
+	public R get() {
 	    try {
 		List<ItemInfo> info = from.get();
 		if(info != forinfo) {
@@ -654,9 +607,8 @@ public abstract class ItemInfo {
 					bonuses.put(attrmodEntry, attrmodEntry.fmtvalue());
 				}
 			}
-        }
+		}
 	}
-
 
 	public static Pair<Integer, Integer> getArmor(List<ItemInfo> infos) {
 		infos = findall("Wear", infos);

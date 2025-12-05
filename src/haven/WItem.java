@@ -38,7 +38,6 @@ import java.util.List;
 import haven.Fuzzy;
 import haven.ItemInfo.AttrCache;
 import haven.res.ui.stackinv.ItemStack;
-import haven.res.ui.tt.level.Level;
 import haven.resutil.Curiosity;
 
 import static haven.Inventory.sqsz;
@@ -80,7 +79,6 @@ public class WItem extends Widget implements DTarget {
     public WItem(GItem item) {
 	super(sqsz);
 	this.item = item;
-    itemq =  item.itemq;
     }
 
     public void drawmain(GOut g, GSprite spr) {
@@ -158,7 +156,6 @@ public class WItem extends Widget implements DTarget {
 	}
     }
 
-
     private List<ItemInfo> info() {return(item.info());}
     public final AttrCache<Pipe.Op> rstate = new AttrCache<>(this::info, info -> {
 	    ArrayList<GItem.RStateInfo> ols = new ArrayList<>();
@@ -187,11 +184,7 @@ public class WItem extends Widget implements DTarget {
 	    GItem.InfoOverlay<?>[] ret = buf.toArray(new GItem.InfoOverlay<?>[0]);
 	    return(() -> ret);
 	});
-
-    public final AttrCache<Level> fullness = new AttrCache<>(this::info, info -> () -> ItemInfo.find(Level.class, info));
     public final AttrCache<Double> itemmeter = new AttrCache<>(this::info, AttrCache.map1(GItem.MeterInfo.class, minf -> minf::meter));
-
-    public final AttrCache<QualityList> itemq;
 
     private Widget contparent() {
 	/* XXX: This is a bit weird, but I'm not sure what the alternative is... */

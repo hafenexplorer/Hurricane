@@ -34,7 +34,6 @@ import haven.res.ui.tt.wear.Wear;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
-import haven.automated.food.FoodService;
 
 public class GItem extends AWidget implements ItemInfo.SpriteOwner, GSprite.Owner, RandomSource {
     public Indir<Resource> res;
@@ -196,16 +195,6 @@ public class GItem extends AWidget implements ItemInfo.SpriteOwner, GSprite.Owne
 	return(spr);
     }
 
-    public String resname() {
-        try {
-            Resource res = resource();
-            if(res != null) {
-                return res.name;
-            }
-        } catch (Loading ignore) {}
-        return "";
-    }
-
     public void tick(double dt) {
 	super.tick(dt);
 	GSprite spr = spr();
@@ -218,26 +207,6 @@ public class GItem extends AWidget implements ItemInfo.SpriteOwner, GSprite.Owne
 	hoverset = false;
     }
 
-    public final ItemInfo.AttrCache<ItemData.Content> contains = new ItemInfo.AttrCache<>(this::info, ItemInfo.AttrCache.cache(ItemInfo::getContent), ItemData.Content.EMPTY);
-    public final ItemInfo.AttrCache<QualityList> itemq = new ItemInfo.AttrCache<>(this::info, ItemInfo.AttrCache.cache(info -> {
-        ItemData.Content content = contains.get();
-        if(!content.empty() && !content.q.isEmpty()) {
-            return content.q;
-        }
-        if(contents != null) {
-            List<QualityList.Quality> qualities = new LinkedList<>();
-            for (WItem item : contents.children(WItem.class)) {
-                QualityList list = item.itemq.get();
-                if(list == null || list.isEmpty()) {continue;}
-                qualities.add(list.single());
-            }
-            if(!qualities.isEmpty()) {
-                return new QualityList(new QualityList(qualities).single(QualityList.SingleType.Average));
-            }
-        }
-        return QualityList.make(ItemInfo.findall(QualityList.classname, info));
-    }));
-
     public List<ItemInfo> info() {
 	if(this.info == null) {
 	    List<ItemInfo> info = ItemInfo.buildinfo(this, rawinfo);
@@ -246,26 +215,9 @@ public class GItem extends AWidget implements ItemInfo.SpriteOwner, GSprite.Owne
 	    if(pg != null)
 		info.add(new ItemInfo.Pagina(this, pg.text));
 	    this.info = info;
-        try {
-            if (OptWnd.sendLiveLocationCheckBox.a) {
-            FoodService.checkFood(info, getres(), itemq.get().single().value, ui.sess.user.genus);}
-        } catch (Exception ex) {}
 	}
 	return(this.info);
     }
-
-
-
-	public boolean checkForHempBuff(){
-		for(Widget buff : ui.gui.buffs.children()){
-			if(buff instanceof Buff && ((Buff) buff).res != null){
-				if(((Buff) buff).res.get().name.equals("gfx/hud/buffs/ganja")){
-					return true;
-				}
-			}
-		}
-		return false;
-	}
 
     public Resource resource() {
 	return(res.get());

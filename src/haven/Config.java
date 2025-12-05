@@ -1118,47 +1118,17 @@ public class Config {
 		Config.playername = playername;
 	}
 
-    public static void initAutomapper(UI ui) {
-        if (MappingClient.initialized()) {
-            MappingClient.destroy();
-        }
-        // FIX: Read from preferences directly (like KamiClient uses CFG)
-        String endpoint = Utils.getpref("webMapEndpoint", "");
-        if (endpoint != null && !endpoint.isEmpty()) {
+	public static void initAutomapper(UI ui) {
+		if (MappingClient.initialized()) {
+			MappingClient.destroy();
+		}
+        if (!OptWnd.webmapEndpointTextEntry.text().isEmpty()) {
             MappingClient.init(ui.sess.glob);
             MappingClient automapper = MappingClient.getInstance();
-            if (automapper != null) {
-                automapper.SetEndpoint(endpoint);
-
-                // Get genus from GameUI or Session.User
-                String genus = "";
-                if (ui.gui != null && ui.gui instanceof GameUI) {
-                    GameUI gui = (GameUI) ui.gui;
-                    genus = gui.genus != null ? gui.genus : "";
-                }
-                if (genus.isEmpty() && ui.sess.user != null) {
-                    genus = ui.sess.user.genus != null ? ui.sess.user.genus : "";
-                }
-                automapper.setGenus(genus);
-
-                // Player name with optional custom name
-                String liveLocationName = Utils.getpref("liveLocationName", "");
-                String playerName = (liveLocationName != null && !liveLocationName.trim().isEmpty())
-                        ? liveLocationName.trim()
-                        : playername;
-                automapper.SetPlayerName(playerName);
-//                String playerName = playername;
-//                String liveLocationName = Utils.getpref("liveLocationName", "");
-//                if (liveLocationName != null && !liveLocationName.isEmpty()) {
-//                    playerName = liveLocationName + " (" + playername + ")";
-//                }
-//                automapper.SetPlayerName(playerName);
-
-                automapper.EnableGridUploads(Utils.getprefb("uploadMapTiles", false));
-                automapper.EnableTracking(Utils.getprefb("enableLocationTracking", false));
-            }
+            if (automapper != null)
+                automapper.SetPlayerName(OptWnd.liveLocationNameTextEntry.buf.line() + " (" + playername + ")");
         }
-    }
+	}
 
 	public static final Map<String, String> ORE_FULL_NAMES = new HashMap<>();
 	static {

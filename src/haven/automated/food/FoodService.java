@@ -159,7 +159,6 @@ public class FoodService {
 
     private static void checkAndSend(ParsedFoodInfo info) {
         String hash = generateHash(info);
-        if (hash == null) return;
         if (cachedItems.containsKey(hash)) {
             return;
         }

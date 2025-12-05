@@ -766,7 +766,6 @@ public class MenuGrid extends Widget implements KeyBinding.Bindable {
 		makeLocal("customclient/menugrid/Toggles/MineSupportRadii");
 		makeLocal("customclient/menugrid/Toggles/MineSupportSafeTiles");
 		makeLocal("customclient/menugrid/Toggles/MineSweeper");
-		makeLocal("customclient/menugrid/Toggles/PathfinderWalking");
 		makeLocal("customclient/menugrid/Toggles/ClearAllCombatDamage");
 		makeLocal("customclient/menugrid/Toggles/AnimalAutoPeace");
 		makeLocal("customclient/menugrid/Toggles/AutoDrinking");
@@ -777,12 +776,10 @@ public class MenuGrid extends Widget implements KeyBinding.Bindable {
 
 		// Category: Bots
 		makeLocal("customclient/menugrid/Bots/OceanScoutBot");
-		makeLocal("customclient/menugrid/Bots/FishingBot");
 		makeLocal("customclient/menugrid/Bots/TarKilnEmptierBot");
 		makeLocal("customclient/menugrid/Bots/TurnipBot");
 		makeLocal("customclient/menugrid/Bots/CellarDiggingBot");
 		makeLocal("customclient/menugrid/Bots/CleanupBot");
-		makeLocal("customclient/menugrid/Bots/GrubGrubBot");
 		makeLocal("customclient/menugrid/Bots/RoastingSpitBot");
 
 		// Category: Other Scripts & Tools
@@ -880,8 +877,6 @@ public class MenuGrid extends Widget implements KeyBinding.Bindable {
 				AutoDropManagerWindow.autoDropItemsCheckBox.set(!AutoDropManagerWindow.autoDropItemsCheckBox.a);
 			} else if (ad[2].equals("FlowerMenuAutoSelect")) {
 				FlowerMenuAutoSelectManagerWindow.flowerMenuAutoSelectCheckBox.set(!FlowerMenuAutoSelectManagerWindow.flowerMenuAutoSelectCheckBox.a);
-			} else if (ad[2].equals("PathfinderWalking")) {
-                OptWnd.walkWithPathFinderCheckBox.set(!OptWnd.walkWithPathFinderCheckBox.a);
 			}
 		} else if (ad[1].equals("Bots")) { // Category: Toggles
 			if (ad[2].equals("OceanScoutBot")) {
@@ -913,20 +908,6 @@ public class MenuGrid extends Widget implements KeyBinding.Bindable {
 						gui.tarKilnCleanerThread = null;
 					}
 				}
-			} else if (ad[2].equals("FishingBot")) {
-				if (gui.fishingBot == null && gui.fishingThread == null) {
-					gui.fishingBot = new FishingBot(gui);
-					gui.add(gui.fishingBot, Utils.getprefc("wndc-fishingBotWindow", new Coord(gui.sz.x/2 - gui.fishingBot.sz.x/2, gui.sz.y/2 - gui.fishingBot.sz.y/2 - 200)));
-					gui.fishingThread = new Thread(gui.fishingBot, "FishingBot");
-					gui.fishingThread.start();
-				} else {
-					if (gui.fishingBot != null) {
-						gui.fishingBot.stop();
-						gui.fishingBot.reqdestroy();
-						gui.fishingBot = null;
-						gui.fishingThread = null;
-					}
-				}
 			} else if (ad[2].equals("TurnipBot")) {
 				if (gui.turnipBot == null && gui.turnipThread == null) {
 					gui.turnipBot = new TurnipBot(gui);
@@ -953,19 +934,6 @@ public class MenuGrid extends Widget implements KeyBinding.Bindable {
 						gui.cleanupBot.reqdestroy();
 						gui.cleanupBot = null;
 						gui.cleanupThread = null;
-					}
-				}
-			} else if (ad[2].equals("GrubGrubBot")) {
-				if (gui.grubGrubBot == null && gui.grubGrubThread == null) {
-					gui.grubGrubBot = new GrubGrubBot(gui);
-                    gui.add(gui.grubGrubBot, Utils.getprefc("wndc-grubGrubBotWindow", new Coord(gui.sz.x / 2 - gui.grubGrubBot.sz.x / 2, gui.sz.y / 2 - gui.grubGrubBot.sz.y / 2 - 200)));
-                    gui.grubGrubThread = new Thread(gui.grubGrubBot, "GrubGrubBot");
-					gui.grubGrubThread.start();
-				} else {
-					if (gui.grubGrubBot != null) {
-						gui.grubGrubBot.stop();
-                        gui.grubGrubBot.reqdestroy();
-						gui.grubGrubBot = null;
 					}
 				}
 			} else if (ad[2].equals("CellarDiggingBot")) {
