@@ -953,9 +953,9 @@ public class MapWnd extends Window implements Console.Directory {
 				    view.file.update(prev);
 				}
 			    }
-				if (MappingClient.getInstance() != null && OptWnd.uploadMapTilesCheckBox.a) {
-					MappingClient.getInstance().uploadSMarker(gob, mark);
-				}
+                if (MappingClient.initialized() && OptWnd.uploadMapTilesCheckBox.a) {
+                    MappingClient.getInstance().uploadSMarker(gob, mark);
+                }
 			} finally {
 			    view.file.lock.writeLock().unlock();
 			}
