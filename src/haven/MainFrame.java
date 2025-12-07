@@ -361,9 +361,9 @@ public class MainFrame extends java.awt.Frame implements Console.Directory, AWTE
 		fun = new Bootstrap();
 	    String t = fun.title();
 	    if(t == null)
-		setTitle("NeuroToxin (" + Config.clientVersion + ")");
+		setTitle("Hurricane (" + Config.clientVersion + ")");
 	    else
-			setTitle("NeuroToxin (" + Config.clientVersion + ") \u2013 " + t);
+			setTitle("Hurricane (" + Config.clientVersion + ") \u2013 " + t);
 	    fun = fun.run(p.newui(fun));
 	}
     }

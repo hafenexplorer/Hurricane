@@ -41,6 +41,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public abstract class ItemInfo {
+    public static final int LEFT = 0;
+    public static final int CENTER = 1;
+    public static final int RIGHT = 2;
     public final Owner owner;
 	static final Pattern count_pattern = Pattern.compile("(?:^|[\\s])([0-9]*\\.?[0-9]+\\s*%?)");
 
@@ -126,12 +129,6 @@ public abstract class ItemInfo {
 	    public T make(Owner owner);
 	}
 
-	@Deprecated
-	public interface ID<T extends Tip> extends TipID<T> {
-	    public T make();
-	    public default T make(Owner owner) {return(make());}
-	}
-
 	@SuppressWarnings("unchecked")
 	public <T extends Tip> T intern(TipID<T> id) {
 	    T ret = (T)itab.get(id);
@@ -140,10 +137,6 @@ public abstract class ItemInfo {
 		add(ret);
 	    }
 	    return(ret);
-	}
-
-	public <T extends Tip> T intern(ID<T> id) {
-	    return(intern((TipID<T>)id));
 	}
 
 	public void add(Tip tip) {
@@ -357,80 +350,71 @@ public abstract class ItemInfo {
     }
 
     public static BufferedImage catimgs(int margin, BufferedImage... imgs) {
-	int w = 0, h = -margin;
-	for(BufferedImage img : imgs) {
-	    if(img == null)
-		continue;
-	    if(img.getWidth() > w)
-		w = img.getWidth();
-	    h += img.getHeight() + margin;
-	}
-	BufferedImage ret = TexI.mkbuf(new Coord(w, h));
-	Graphics g = ret.getGraphics();
-	int y = 0;
-	for(BufferedImage img : imgs) {
-	    if(img == null)
-		continue;
-	    g.drawImage(img, 0, y, null);
-	    y += img.getHeight() + margin;
-	}
-	g.dispose();
-	return(ret);
+        return catimgs(margin, LEFT, imgs);
     }
 
-	public static BufferedImage catimgs(int margin, int align, BufferedImage... imgs) {
-		int w = 0, h = -margin;
-		for(BufferedImage img : imgs) {
-			if(img == null)
-				continue;
-			if(img.getWidth() > w)
-				w = img.getWidth();
-			h += img.getHeight() + margin;
-		}
-		BufferedImage ret = TexI.mkbuf(new Coord(w, h));
-		Graphics g = ret.getGraphics();
-		int y = 0;
-		for(BufferedImage img : imgs) {
-			if(img == null)
-				continue;
-			int x = 0;
-			if(align == 2) {
-				x = w - img.getWidth();
-			} else if(align == 1) {
-				x = (w - img.getWidth()) / 2;
-			}
-			g.drawImage(img, x, y, null);
-			y += img.getHeight() + margin;
-		}
-		g.dispose();
-		return(ret);
-	}
+    public static BufferedImage catimgs(int margin, boolean right, BufferedImage... imgs) {
+        return catimgs(margin, right ? RIGHT : LEFT, imgs);
+
+    }
+
+    public static BufferedImage catimgs(int margin, int align, BufferedImage... imgs) {
+        int w = 0, h = -margin;
+        for(BufferedImage img : imgs) {
+            if(img == null)
+                continue;
+            if(img.getWidth() > w)
+                w = img.getWidth();
+            h += img.getHeight() + margin;
+        }
+        BufferedImage ret = TexI.mkbuf(new Coord(w, h));
+        Graphics g = ret.getGraphics();
+        int y = 0;
+        for(BufferedImage img : imgs) {
+            if(img == null)
+                continue;
+            int x = 0;
+            if(align == RIGHT) {
+                x = w - img.getWidth();
+            } else if(align == CENTER) {
+                x = (w - img.getWidth()) / 2;
+            }
+            g.drawImage(img, x, y, null);
+            y += img.getHeight() + margin;
+        }
+        g.dispose();
+        return(ret);
+    }
+
+    public static BufferedImage catimgsh(int margin, BufferedImage... imgs) {
+        return catimgsh(margin, 0, null, imgs);
+    }
 
     public static BufferedImage catimgsh(int margin, int pad, Color bg, BufferedImage... imgs) {
-	int w = -margin, h = 0;
-	for(BufferedImage img : imgs) {
-	    if(img == null)
-		continue;
-	    if(img.getHeight() > h)
-		h = img.getHeight();
-	    w += img.getWidth() + margin;
-	}
-	BufferedImage ret = TexI.mkbuf(new Coord(w, h));
-	Graphics g = ret.getGraphics();
-	int x = 0;
-	for(BufferedImage img : imgs) {
-	    if(img == null)
-		continue;
-	    g.drawImage(img, x, (h - img.getHeight()) / 2, null);
-	    x += img.getWidth() + margin;
-	}
-	g.dispose();
-	return(ret);
+        int w = 2 * pad - margin, h = 0;
+        for(BufferedImage img : imgs) {
+            if(img == null)
+                continue;
+            if(img.getHeight() > h)
+                h = img.getHeight();
+            w += img.getWidth() + margin;
+        }
+        BufferedImage ret = TexI.mkbuf(new Coord(w, h));
+        Graphics g = ret.getGraphics();
+        if(bg != null) {
+            g.setColor(bg);
+            g.fillRect(0, 0, w, h);
+        }
+        int x = pad;
+        for(BufferedImage img : imgs) {
+            if(img == null)
+                continue;
+            g.drawImage(img, x, (h - img.getHeight()) / 2, null);
+            x += img.getWidth() + margin;
+        }
+        g.dispose();
+        return(ret);
     }
-
-	public static BufferedImage catimgsh(int margin, BufferedImage... imgs) {
-		return catimgsh(margin, 0, null, imgs);
-	}
 
     public static BufferedImage longtip(List<ItemInfo> info) {
 	if(info.isEmpty())

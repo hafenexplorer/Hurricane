@@ -1158,6 +1158,7 @@ public class OptWnd extends Window {
 	public static HSlider targetSpriteSizeSlider;
 	public static CheckBox drawChaseVectorsCheckBox;
 	public static CheckBox drawYourCurrentPathCheckBox;
+	public static CheckBox drawPathfinderRouteCheckBox;
 	public static CheckBox showYourCombatRangeCirclesCheckBox;
 	public static boolean refreshMyUnarmedRange = false;
 	public static boolean refreshMyWeaponRange = false;
@@ -1532,6 +1533,12 @@ public class OptWnd extends Window {
 				}
 			}, rightColumn.pos("bl").adds(0, 2));
 			drawYourCurrentPathCheckBox.tooltip = drawYourCurrentPathTooltip;
+			rightColumn = add(drawPathfinderRouteCheckBox = new CheckBox("Draw Pathfinder Route"){
+				{a = Utils.getprefb("drawPathfinderRoute", false);}
+				public void changed(boolean val) {
+					Utils.setprefb("drawPathfinderRoute", val);
+				}
+			}, rightColumn.pos("bl").adds(0, 2));
 			rightColumn = add(showYourCombatRangeCirclesCheckBox = new CheckBox("Show Your Combat Range Circles"){
 				{a = Utils.getprefb("showYourCombatRangeCircles", false);}
 				public void changed(boolean val) {
@@ -1558,7 +1565,7 @@ public class OptWnd extends Window {
 			
 
 			Widget backButton;
-			add(backButton = new PButton(UI.scale(200), "Back", 27, back, "Advanced Settings"), leftColumn.pos("bl").adds(0, 18).x(0));
+			add(backButton = new PButton(UI.scale(200), "Back", 27, back, "Advanced Settings"), leftColumn.pos("bl").adds(0, 33).x(0));
 			pack();
 			centerBackButton(backButton, this);
 		}
@@ -2908,6 +2915,7 @@ public class OptWnd extends Window {
 	public static CheckBox autoDrinkingCheckBox;
 	public static TextEntry autoDrinkingThresholdTextEntry;
 	public static CheckBox enableQueuedMovementCheckBox;
+    public static CheckBox walkWithPathFinderCheckBox;
 
 	public class GameplayAutomationSettingsPanel extends Panel {
 
@@ -3132,6 +3140,18 @@ public class OptWnd extends Window {
 				}
 			}, prev.pos("bl").adds(0, 12));
 			enableQueuedMovementCheckBox.tooltip = enableQueuedMovementTooltip;
+
+            prev = add(walkWithPathFinderCheckBox = new CheckBox("Walk with Pathfinder (Ctrl+Shift+Click)"){
+                {a = Utils.getprefb("walkWithPathfinder", false);}
+                public void set(boolean val) {
+                    Utils.setprefb("walkWithPathfinder", val);
+                    a = val;
+                    if (ui != null && ui.gui != null) {
+                        ui.gui.optionInfoMsg("Walk with Pathfinder (Ctrl+Shift+Click) is now " + (val ? "ENABLED" : "DISABLED") + ".", (val ? msgGreen : msgRed), Audio.resclip(val ? Toggle.sfxon : Toggle.sfxoff));
+                    }
+                }
+            }, prev.pos("bl").adds(0, 12));
+            walkWithPathFinderCheckBox.tooltip = walkWithPathfinderTooltip;
 
 			Widget backButton;
 			add(backButton = new PButton(UI.scale(200), "Back", 27, back, "Advanced Settings"), prev.pos("bl").adds(0, 18));
@@ -4300,12 +4320,14 @@ public class OptWnd extends Window {
 	public static CheckBox uploadMapTilesCheckBox;
 	public static CheckBox sendLiveLocationCheckBox;
 	public static TextEntry liveLocationNameTextEntry;
-//	public static Map<Color, Boolean> colorCheckboxesMap = new HashMap<>();
-//	static {
-//		for (Color color : BuddyWnd.gc) {
-//			colorCheckboxesMap.put(color, Utils.getprefb("enableMarkerUpload" + color.getRGB(), false));
-//		}
-//	}
+    public static CheckBox sendFoodCheckBox;
+
+//	public static TextEntry webmapTokenTextEntry;
+
+	public static TextEntry cookBookEndpointTextEntry;
+	public static TextEntry cookBookTokenTextEntry;
+
+
 
 	public class ServerIntegrationSettingsPanel extends Panel {
 
@@ -4317,7 +4339,7 @@ public class OptWnd extends Window {
 				protected void changed() {
 					Utils.setpref("webMapEndpoint", this.buf.line());
                     MappingClient.destroy();
-                    super.changed();
+					super.changed();
 				}
 			}, prev.pos("ur").adds(6, 0));
 			prev = add(uploadMapTilesCheckBox = new CheckBox("Upload Map Tiles to your Web Map Server"){
@@ -4346,6 +4368,32 @@ public class OptWnd extends Window {
 			}, prev.pos("ur").adds(6, 0));
 			liveLocationNameTextEntry.tooltip = liveLocationNameTooltip;
 
+            prev = add(sendFoodCheckBox = new CheckBox("Send Food Info to your Web Map Server"){
+                {a = Utils.getprefb("enableFoodTracking", false);}
+                public void changed(boolean val) {
+                    Utils.setprefb("enableFoodTracking", val);
+                }
+            }, prev.pos("bl").adds(-216, 12));
+            sendFoodCheckBox.tooltip = sendFoodTooltip;
+
+
+
+            /***prev = add(new Label("Cookbook Integration"), prev.pos("bl").adds(0, 26).x(110));
+			prev = add(new Label("Cookbook Endpoint:"), prev.pos("bl").adds(0, 16).x(0));
+			prev = add(cookBookEndpointTextEntry = new TextEntry(UI.scale(220), Utils.getpref("cookBookEndpoint", "")){
+				protected void changed() {
+					Utils.setpref("cookBookEndpoint", this.buf.line());
+					super.changed();
+				}
+			}, prev.pos("ur").adds(6, 0));
+			prev = add(new Label("Cookbook Token:"), prev.pos("bl").adds(0, 8).x(0));
+			prev = add(cookBookTokenTextEntry = new TextEntry(UI.scale(220), Utils.getpref("cookBookToken", "")){
+				protected void changed() {
+					Utils.setpref("cookBookToken", this.buf.line());
+					super.changed();
+				}
+			}, prev.pos("ur").adds(20, 0)); */
+
             prev = add(new Label("Discord Webhook:"), prev.pos("bl").adds(0, 16).x(0));
             prev = add(discordEndpointTextEntry = new TextEntry(UI.scale(220), Utils.getpref("DiscordEndpoint", "")){
                 protected void changed() {
@@ -4354,34 +4402,39 @@ public class OptWnd extends Window {
                     super.changed();
                 }
             }, prev.pos("ur").adds(16, 0));
-//			prev = add(new Label("Markers to upload:"), prev.pos("bl").adds(0, 20).x(0));
-//
-//			for (Map.Entry<Color, Boolean> entry : colorCheckboxesMap.entrySet()) {
-//				Color color = entry.getKey();
-//				boolean isChecked = entry.getValue();
-//
-//				CheckBox colorCheckbox = new CheckBox(""){
-//					{a = isChecked;}
-//					@Override
-//					public void draw(GOut g) {
-//						g.chcolor(color);
-//						g.frect(Coord.z.add(0, (sz.y - box.sz().y) / 2), box.sz());
-//						g.chcolor();
-//						if(state())
-//							g.image(mark, Coord.z.add(0, (sz.y - mark.sz().y) / 2));
-//					}
-//
-//					public void set(boolean val) {
-//						Utils.setprefb("enableMarkerUpload" + color.getRGB(), val);
-//						colorCheckboxesMap.put(color, val);
-//						a = val;
-//					}
-//				};
-//				prev = add(colorCheckbox, prev.pos("ur").adds(10, 0));
-//			}
+
+            prev = add(new Button(UI.scale(200), "Save", false) {
+                @Override
+                public void click() {
+                    try {
+                        boolean setUsername = false;
+                        if (!MappingClient.initialized() && ui.sess.user.name != null &&  ui.sess.user.name.length() > 0) {
+                            MappingClient.init(ui.sess.glob);
+                            setUsername = true;
+                        }
+                        MappingClient automapper = MappingClient.getInstance();
+                        automapper.setGenus(ui.sess.user.genus);
+                        if (setUsername)
+                            if (setUsername) {
+                                String liveLocationName = Utils.getpref("liveLocationName", "");
+                                String playerName = (liveLocationName != null && !liveLocationName.trim().isEmpty())
+                                        ? liveLocationName.trim()
+                                        : ui.sess.user.name;
+                                automapper.SetPlayerName(playerName);
+                            }
+                            automapper.SetEndpoint(OptWnd.webmapEndpointTextEntry.buf.line());
+                            automapper.EnableGridUploads(OptWnd.uploadMapTilesCheckBox.a);
+                            automapper.EnableTracking(OptWnd.sendLiveLocationCheckBox.a);
+                    //    mappingLabel.settext("Mapping URL: " + (automapper.CheckEndpoint() ? "Valid" : "Invalid"));
+                    } catch (Exception ex) {}
+
+                }
+            }, prev.pos("ur").adds(-262, 30));
+
+
 
 			Widget backButton;
-			add(backButton = new PButton(UI.scale(200), "Back", 27, back, "Advanced Settings"), prev.pos("bl").adds(0, 18).x(0));
+			add(backButton = new PButton(UI.scale(200), "Back", 27, back, "Advanced Settings"), prev.pos("bl").adds(0, 8).x(0));
 			pack();
 			centerBackButton(backButton, this);
 		}
@@ -4974,6 +5027,9 @@ public class OptWnd extends Window {
 			"\n" +
 			"\n$col[218,163,0]{Action Button:} $col[185,185,185]{This setting can also be turned on/off using an action button from the menu grid (Custom Client Extras → Toggles).}", UI.scale(320));
 	private static final Object enableQueuedMovementTooltip = RichText.render("$col[218,163,0]{Action Button:} $col[185,185,185]{This setting can also be turned on/off using an action button from the menu grid (Custom Client Extras → Toggles).}", UI.scale(300));
+    private static final Object walkWithPathfinderTooltip = RichText.render("You can use this to walk and avoid possible obstacles, for example, in your base. It's not perfect, and doesn't work with cliffs though." +
+            "\n" +
+            "\n$col[218,163,0]{Action Button:} $col[185,185,185]{This setting can also be turned on/off using an action button from the menu grid (Custom Client Extras → Toggles).}", UI.scale(300));
 
 	// Altered Gameplay Settings Tooltips
 	private static final Object overrideCursorItemWhenHoldingAltTooltip = RichText.render("Holding Alt while having an item on your cursor will allow you to left click to walk, or right click to interact with objects, rather than drop it on the ground." +
@@ -5099,6 +5155,7 @@ public class OptWnd extends Window {
 	// Server Integration Settings Tooltips
 	private static final Object uploadMapTilesTooltip = RichText.render("Enable this to upload your map tiles to your web map server.", UI.scale(300));
 	private static final Object sendLiveLocationTooltip = RichText.render("Enable this to show your current location on your web map server.", UI.scale(320));
+    private static final Object sendFoodTooltip = RichText.render("Enable this to upload your food to your web map server.", UI.scale(320));
 	private static final Object liveLocationNameTooltip = RichText.render("If you send your location to the server, your name will appear as whatever you set in this text entry + your current character name." +
 			"\n" +
 			"\n$col[218,163,0]{For example:} Nightdawg (VillageCrafter)$col[185,185,185]{, where }\"Nightdawg\" $col[185,185,185]{is the name I set in this text entry, and} \"VillageCrafter\" $col[185,185,185]{is the character's original name." +

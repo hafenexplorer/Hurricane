@@ -89,7 +89,7 @@ public class Resource implements Serializable {
         }
 
 
-        public int hashCode() {
+	public int hashCode() {
 	    int ret = name.hashCode();
 	    ret = (ret * 31) + ver;
 	    return(ret);
@@ -98,6 +98,16 @@ public class Resource implements Serializable {
 	public String toString() {
 	    return(String.format("#<res-name %s v%d>", name, ver));
 	}
+    }
+
+    private static Resource loadsaved(Resource.Pool pool, Named spec) {
+        try {
+            return (spec.get());
+        } catch (haven.Loading l) {
+            throw (l);
+        } catch (Exception e) {
+            return (pool.load(spec.name).get());
+        }
     }
 
     public static class Spec extends Named implements Serializable {
@@ -1035,16 +1045,16 @@ public class Resource implements Serializable {
     }
 
     static {
-	for(Class<?> cl : dolda.jglob.Loader.get(LayerName.class).classes()) {
-	    String nm = cl.getAnnotation(LayerName.class).value();
-	    if(LayerFactory.class.isAssignableFrom(cl)) {
-            addltype(nm, (LayerFactory<?>) Utils.construct(cl.asSubclass(LayerFactory.class)));
-	    } else if(Layer.class.isAssignableFrom(cl)) {
-		addltype(nm, cl.asSubclass(Layer.class));
-	    } else {
-		throw(new Error("Illegal resource layer class: " + cl));
-	    }
-	}
+        for(Class<?> cl : dolda.jglob.Loader.get(LayerName.class).classes()) {
+            String nm = cl.getAnnotation(LayerName.class).value();
+            if(LayerFactory.class.isAssignableFrom(cl)) {
+                addltype(nm, (LayerFactory<?>) Utils.construct(cl.asSubclass(LayerFactory.class)));
+            } else if(Layer.class.isAssignableFrom(cl)) {
+                addltype(nm, cl.asSubclass(Layer.class));
+            } else {
+                throw(new Error("Illegal resource layer class: " + cl));
+            }
+        }
     }
 
     public interface IDLayer<T> {
@@ -2095,16 +2105,6 @@ public class Resource implements Serializable {
 	    }
 	}
 	in.close();
-    }
-
-    public static Resource loadsaved(Resource.Pool pool, Named spec) {
-        try {
-            return (spec.get());
-        } catch (haven.Loading l) {
-            throw (l);
-        } catch (Exception e) {
-            return (pool.load(spec.name).get());
-        }
     }
 
     public static void dumplist(Collection<Resource> list, Writer dest) {

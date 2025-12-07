@@ -1,12 +1,15 @@
 package haven.automated.food;
 
-import haven.ItemInfo;
-import haven.OptWnd;
-import haven.Resource;
+import haven.*;
 import haven.resutil.FoodInfo;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -15,15 +18,24 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
 public class FoodService {
-    public static final String API_ENDPOINT = OptWnd.webmapEndpointTextEntry.buf.line();
+    public static final String API_ENDPOINT = Utils.getpref("webMapEndpoint", "");
     private static final String FOOD_DATA_URL = "/data/food-info.json";
     private static final File FOOD_DATA_CACHE_FILE = new File("food_data.json");
-    private static String token = "NeuroToxin";  //Config.confid maybe ArdClient also works
+    private static String token = "KamiClient";  //Config.confid maybe ArdClient also works
 
     private static final Map<String, ParsedFoodInfo> cachedItems = new ConcurrentHashMap<>();
     private static final Queue<HashedFoodInfo> sendQueue = new ConcurrentLinkedQueue<>();
@@ -68,8 +80,7 @@ public class FoodService {
             }
             if (System.currentTimeMillis() - lastModified > TimeUnit.MINUTES.toMillis(30)) {
                 try {
-                    HttpURLConnection connection =
-                            (HttpURLConnection) new URL(API_ENDPOINT + FOOD_DATA_URL).openConnection();
+                    HttpURLConnection connection = (HttpURLConnection) new URL(API_ENDPOINT + FOOD_DATA_URL).openConnection();
                     connection.setRequestProperty("Accept-Encoding", "gzip");
                     connection.setRequestProperty("User-Agent", "H&H Client/" + token);
                     connection.setRequestProperty("Cache-Control", "no-cache");

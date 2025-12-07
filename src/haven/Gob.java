@@ -228,7 +228,6 @@ public class Gob implements RenderTree.Node, Sprite.Owner, Skeleton.ModOwner, Eq
 	    .add(Overlay.class, o -> o);
 	public <T> T context(Class<T> cl) {return(OwnerContext.orparent(cl, ctxr.context(cl, this, false), gob));}
 	public Random mkrandoom() {return(gob.mkrandoom());}
-//	@Deprecated
 	public Resource getres() {return(gob.getres());}
 
 	public String getSprResName() {
@@ -729,12 +728,12 @@ public class Gob implements RenderTree.Node, Sprite.Owner, Skeleton.ModOwner, Eq
 	if(m != null)
 		m.move(c);
 	this.gobSpeed = m != null ? m.getv() : 0;
-		if(isMe != null && isMe && MappingClient.getInstance() != null) {
-			if (OptWnd.uploadMapTilesCheckBox.a)
-				MappingClient.getInstance().CheckGridCoord(c);
-			if (OptWnd.sendLiveLocationCheckBox.a)
-				MappingClient.getInstance().Track(id, c);
-		}
+        if(isMe != null && isMe && MappingClient.initialized()) {
+            if (OptWnd.uploadMapTilesCheckBox.a)
+                MappingClient.getInstance().CheckGridCoord(c);
+            if (OptWnd.sendLiveLocationCheckBox.a)
+                MappingClient.getInstance().Track(id, c);
+        }
 	this.rc = c;
 	this.a = a;
     }
@@ -1036,7 +1035,6 @@ public class Gob implements RenderTree.Node, Sprite.Owner, Skeleton.ModOwner, Eq
 	return(Utils.mkrandoom(id));
     }
 
-//    @Deprecated
     public Resource getres() {
 	Drawable d = getattr(Drawable.class);
 	if(d != null)
@@ -1431,7 +1429,7 @@ public class Gob implements RenderTree.Node, Sprite.Owner, Skeleton.ModOwner, Eq
 	}
 
 	public void setCustomPlayerName() {
-		if (getattr(Buddy.class) == null && getattr(haven.res.ui.obj.buddy_n.Named.class) == null && isMannequin != null && !isMannequin && isSkeleton != null && !isSkeleton && glob.sess.ui.gui != null && glob.sess.ui.gui.map != null) {
+		if (getattr(Buddy.class) == null && getattr(haven.res.ui.obj.buddy_n.Named.class) == null && isMannequin != null && !isMannequin && isSkeleton != null && !isSkeleton && glob != null && glob.sess != null && glob.sess.ui != null && glob.sess.ui.gui != null && glob.sess.ui.gui.map != null) {
 			if (getres() != null) {
 				if (getres().name.equals("gfx/borka/body")) {
 					long plgobid = glob.sess.ui.gui.map.plgob;
@@ -1495,7 +1493,7 @@ public class Gob implements RenderTree.Node, Sprite.Owner, Skeleton.ModOwner, Eq
 				// TODO: ND: I've spent 3 hours trying to figure out how to make this map icon thing work on login (if you're already hiding objects and have an icon enabled)
 				//  It's probably something to do with this conf.show changing at some point somewhere, AFTER the hiding boxes are updated, BUT WHERE?. Seems to only happen on login.
 				GobIcon icon = getattr(GobIcon.class);
-				if (icon != null && glob.sess.ui.gui != null && glob.sess.ui.gui.iconconf != null) {
+				if (icon != null && glob != null && glob.sess != null && glob.sess.ui != null && glob.sess.ui.gui != null && glob.sess.ui.gui.iconconf != null) {
 					GobIcon.Setting conf = glob.sess.ui.gui.iconconf.get(icon.icon());
 					if (conf != null && conf.show) {
 						mapIconVisible = true;

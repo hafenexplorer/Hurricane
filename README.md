@@ -1,4 +1,4 @@
-# NeuroToxin Client
+# Hurricane Client
 
 This is just another custom client you can use to play the wonderful game,
 Haven & Hearth. This client is built on top of the "Vanilla" Client, and
@@ -9,12 +9,29 @@ by Loftar, and I try to keep it up to date, to avoid crashes.
 This client can be played standalone, or through Steam, by subscribing to
 the Steam Workshop item.
 
-## Downloading/Updating the NeuroToxinClient (Outside of Steam):
+## Links:
 
-Manually download the latest release: 
+Forum Thread:
+https://www.havenandhearth.com/forum/viewtopic.php?t=76544
 
+Discord Server:
+https://discord.gg/WnEYkeAzja
 
-## Launching the NeuroToxin Client (Outside of Steam):
+Steam Workshop:
+https://steamcommunity.com/sharedfiles/filedetails/?id=3423755273
+
+## Downloading/Updating the Hurricane Client (Outside of Steam):
+Use the Primitive Updater: https://github.com/Nightdawg/Hurricane/releases/tag/updater 
+
+ --- OR ---
+
+Manually download the latest release: https://github.com/Nightdawg/Hurricane/releases/latest
+
+### If the updater doesn't work:
+1. Make sure your installed Java version is between 15 and 21.
+2. You might need to add the updater file (HurricaneUpdater.bat) to your anti-virus exceptions list.
+
+## Launching the Hurricane Client (Outside of Steam):
 
 Run the Play.bat file inside the client folder.
 

@@ -3,10 +3,12 @@ package haven.automated.mapper;
 import haven.*;
 import haven.MCache.LoadingMap;
 import haven.res.ui.obj.buddy.Buddy;
+//import me.ender.minimap.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.imageio.ImageIO;
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.lang.ref.WeakReference;
@@ -19,20 +21,21 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 
-/** @author Vendan **/
+/**
+ * @author Vendan
+ */
 public class MappingClient {
+
     private ExecutorService gridsUploader = Executors.newSingleThreadExecutor();
     private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3);
 
     private static volatile MappingClient INSTANCE = null;
 
-    private int spamPreventionVal = 3;
-    private int spamCount = 0;
     private Glob glob;
 
     public static void init(Glob glob) {
         synchronized (MappingClient.class) {
-            if (INSTANCE == null) {
+            if(INSTANCE == null) {
                 INSTANCE = new MappingClient(glob);
             } else {
                 throw new IllegalStateException("MappingClient can only be initialized once!");
@@ -42,7 +45,7 @@ public class MappingClient {
 
     public static void destroy() {
         synchronized (MappingClient.class) {
-            if (INSTANCE != null) {
+            if(INSTANCE != null) {
                 INSTANCE.gridsUploader.shutdown();
                 INSTANCE.scheduler.shutdown();
                 INSTANCE = null;
@@ -50,13 +53,11 @@ public class MappingClient {
         }
     }
 
-    public static boolean initialized() {
-        return INSTANCE != null;
-    }
+    public static boolean initialized() {return INSTANCE != null;}
 
     public static MappingClient getInstance() {
         synchronized (MappingClient.class) {
-            if (INSTANCE == null) {
+            if(INSTANCE == null) {
                 throw new IllegalStateException("MappingClient should be initialized first!");
             }
             return INSTANCE;
@@ -65,7 +66,7 @@ public class MappingClient {
 
     private boolean trackingEnabled;
 
-    /*** verify if needed -- L64 - L79
+    /***
      * Enable tracking for this execution.  Must be called each time the client is started.
      * @param enabled
      */
@@ -87,12 +88,12 @@ public class MappingClient {
 
     private MappingClient(Glob glob) {
         this.glob = glob;
-        scheduler.scheduleAtFixedRate(pu, 2L, 2L, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(pu, 5L, 5L, TimeUnit.SECONDS);
     }
 
     private String endpoint;
 
-    /*** verify if needed -- L90 -100
+    /***
      * Set mapping server endpoint.  Must be called each time the client is started.  Takes effect immediately.
      * @param endpoint
      */
@@ -100,21 +101,19 @@ public class MappingClient {
         this.endpoint = endpoint;
     }
 
-
     private String playerName;
 
-    /*** verify if needed -- L103 - 107
+    /***
      * Set the player name.  Typically called from Charlist.wdgmsg
      * @param name
      */
-
     public void SetPlayerName(String name) {
         playerName = name;
     }
 
     private String genus;
 
-    /*** verify if needed -- L114 - 148
+    /***
      * Set the world genus (version)
      * @param genus
      */
@@ -126,7 +125,6 @@ public class MappingClient {
      * Checks that the endpoint is functional and matches the version of this mapping client.
      * @return
      */
-
     public boolean CheckEndpoint() {
         try {
             if (INSTANCE == null)
@@ -140,7 +138,7 @@ public class MappingClient {
         }
     }
 
-    private Coord2d playerCoord = new Coord2d(0, 0);
+    private Coord2d playerCoord = new Coord2d(0,0);
     private long playerGridId = 0;
 
     /***
@@ -151,16 +149,15 @@ public class MappingClient {
      */
     public void Track(long id, Coord2d coordinates) {
         try {
-            playerCoord = coordinates; /*** updates from Kami */
+            playerCoord = coordinates;
             MCache.Grid g = glob.map.getgrid(toGC(coordinates));
-            playerGridId = g.id; /*** updates from Kami */
-            pu.Track(id, coordinates, g.id, genus); /*** updates from Kami */
-        } catch (Exception ex) {
-        }
+            playerGridId = g.id;
+            pu.Track(id, coordinates, g.id, genus);
+        } catch (Exception ex) {}
     }
 
-    /*** updates from Kami */
-    public void SetTimerToNearestRes(String inspectResult) {
+    public void SetTimerToNearestRes(String inspectResult)
+    {
         scheduler.execute(new UploadInspectResult(playerGridId, playerCoord, inspectResult, genus));
     }
 
@@ -181,14 +178,14 @@ public class MappingClient {
      */
     public void CheckGridCoord(Coord2d c) {
         Coord gc = toGC(c);
-        if (lastGC == null || !gc.equals(lastGC)) {
+        if(lastGC == null || !gc.equals(lastGC)) {
             EnterGrid(gc);
         }
     }
 
     private final Map<Long, MapRef> cache = new HashMap<Long, MapRef>();
 
-    /*** Kami Changes L191 - L241
+    /***
      * Gets a MapRef (mapid, coordinate pair) for the players current location
      * @return Current grid MapRef
      */
@@ -199,14 +196,25 @@ public class MappingClient {
             synchronized (cache) {
                 long id = glob.map.getgrid(gc).id;
                 MapRef mapRef = cache.get(id);
-                if (mapRef == null) {
+                if(mapRef == null) {
                     scheduler.execute(new Locate(id));
                 }
                 return mapRef;
             }
-        } catch (Exception e) {
-        }
+        } catch (Exception e) {}
         return null;
+    }
+
+    /***
+     * Given a mapref, opens the map to the corresponding location
+     * @param mapRef
+     */
+    public void OpenMap(MapRef mapRef) {
+        try {
+            if(mapRef == null) {return;}
+            WebBrowser.self.show(new URL(
+                    String.format(endpoint + "/#/grid/%d/%d/%d/6", mapRef.mapID, mapRef.gc.x, mapRef.gc.y)));
+        } catch (Exception ex) {}
     }
 
     private class Locate implements Runnable {
@@ -244,410 +252,413 @@ public class MappingClient {
      * @param mapfile
      * @param uploadCheck
      */
+    public void ProcessMap(MapFile mapfile, Predicate<MapFile.Marker> uploadCheck) {
+        scheduler.schedule(new ExtractMapper(mapfile, uploadCheck, genus), 1, TimeUnit.SECONDS);
 
-        public void ProcessMap(MapFile mapfile, Predicate<MapFile.Marker> uploadCheck) {
-            scheduler.schedule(new ExtractMapper(mapfile, uploadCheck, genus), 5, TimeUnit.SECONDS);
+    }
+
+    private class ExtractMapper implements Runnable {
+        MapFile mapfile;
+        Predicate<MapFile.Marker> uploadCheck;
+        int retries = 5;
+        String genus;
+
+        ExtractMapper(MapFile mapfile, Predicate<MapFile.Marker> uploadCheck, String genus) {
+            this.mapfile = mapfile;
+            this.uploadCheck = uploadCheck;
+            this.genus = genus;
         }
 
-        private class ExtractMapper implements Runnable {
-            MapFile mapfile;
-            Predicate<MapFile.Marker> uploadCheck;
-            int retries = 5;
-            String genus;
+        @Override
+        public void run() {
+            if(mapfile.lock.readLock().tryLock()) {
+                try {
+                    List<MarkerData> markers = mapfile.markers.stream().map(m -> {
+                        Coord mgc = new Coord(Math.floorDiv(m.tc.x, 100), Math.floorDiv(m.tc.y, 100));
+                        Indir<MapFile.Grid> indirGrid = mapfile.segments.get(m.seg).grid(mgc);
+                        return new MarkerData(m, indirGrid);
+                    }).collect(Collectors.toList());
+                    System.out.println("collected " + markers.size() + " markers");
 
-            ExtractMapper(MapFile mapfile, Predicate<MapFile.Marker> uploadCheck, String genus) {
-                this.mapfile = mapfile;
-                this.uploadCheck = uploadCheck;
-                this.genus = genus; /*** Kami genus update */
-            }
-
-            @Override
-            public void run() {
-//		if (mapfile.lock.readLock().tryLock()) {
-//			try {
-//				List<MarkerData> markers = mapfile.markers.stream()
-//						.filter(uploadCheck)
-//						.map(m -> {
-//							Coord mgc = new Coord(Math.floorDiv(m.tc.x, 100), Math.floorDiv(m.tc.y, 100));
-//							Indir<MapFile.Grid> indirGrid = mapfile.segments.get(m.seg).grid(mgc);
-//							return new MarkerData(m, indirGrid);
-//						})
-//						.collect(Collectors.toList());
-//
-//				scheduler.execute(new ProcessMapper(mapfile, markers));
-//			} finally {
-//				mapfile.lock.readLock().unlock();
-//			}
-//		} else {
-//			if (retries-- > 0) {
-//				scheduler.schedule(this, 5, TimeUnit.SECONDS);
-//			}
-//		}
-            }
-
-        }
-
-        private class MarkerData {
-            MapFile.Marker m;
-            Indir<MapFile.Grid> indirGrid;
-
-            MarkerData(MapFile.Marker m, Indir<MapFile.Grid> indirGrid) {
-                this.m = m;
-                this.indirGrid = indirGrid;
+                    scheduler.schedule(new ProcessMapper(mapfile, markers, genus), 15, TimeUnit.SECONDS);
+                } catch (Exception ex)
+                {
+                    System.out.println("Error while collection markers: " +ex);
+                }
+                mapfile.lock.readLock().unlock();
+            } else {
+                if(retries-- > 0) {
+                    System.out.println("rescheduling upload");
+                    scheduler.schedule(this, 5, TimeUnit.SECONDS);
+                }
             }
         }
+    }
 
-        private class ProcessMapper implements Runnable {
-            MapFile mapfile;
-            List<MarkerData> markers;
-            String genus;
+    private class MarkerData {
+        MapFile.Marker m;
+        Indir<MapFile.Grid> indirGrid;
 
-            ProcessMapper(MapFile mapfile, List<MarkerData> markers, String genus) {
-                this.mapfile = mapfile;
-                this.markers = markers;
-                this.genus = genus;
-            }
+        MarkerData(MapFile.Marker m, Indir<MapFile.Grid> indirGrid) {
+            this.m = m;
+            this.indirGrid = indirGrid;
+        }
+    }
 
-            @Override
-            public void run() {
-                ArrayList<JSONObject> loadedMarkers = new ArrayList<>();
-                while (!markers.isEmpty()) {
-                    Iterator<MarkerData> iterator = markers.iterator();
-                    while (iterator.hasNext()) {
-                        MarkerData md = iterator.next();
-                        try {
-                            Coord mgc = new Coord(Math.floorDiv(md.m.tc.x, 100), Math.floorDiv(md.m.tc.y, 100));
-                            long gridId;
-                            try {
-                                gridId = md.indirGrid.get().id;
-                            } catch (Exception e) {
-                                iterator.remove();
-                                continue;
-                            }
-                            JSONObject o = new JSONObject();
-                            o.put("name", md.m.nm);
-                            o.put("genus", genus);
-                            o.put("gridID", String.valueOf(gridId));
-                            Coord gridOffset = md.m.tc.sub(mgc.mul(100));
-                            o.put("x", gridOffset.x);
-                            o.put("y", gridOffset.y);
+    private class ProcessMapper implements Runnable {
+        MapFile mapfile;
+        List<MarkerData> markers;
+        String genus;
 
-                            if (md.m instanceof MapFile.SMarker) {
-                                o.put("type", "shared");
-                                try {
-                                o.put("id", ((MapFile.SMarker) md.m).oid);
-                                } catch (Exception ex)
-                                {
-                                    o.put("id", 0);
-                                }
-                                o.put("image", ((MapFile.SMarker) md.m).res.name);
-                            } else if (md.m instanceof MapFile.PMarker) {
-                                o.put("type", "player");
-                                o.put("color", ((MapFile.PMarker) md.m).color);
-                            }
-                            loadedMarkers.add(o);
-                            iterator.remove();
-                        } catch (Loading ex) {
-                            System.out.println(ex);
-                            System.out.println("Rescheduling marker upload processing...");
-                            scheduler.schedule(this, 5, TimeUnit.SECONDS);
-                            return;
-                        }
-                    }
+        ProcessMapper(MapFile mapfile, List<MarkerData> markers, String genus) {
+            this.mapfile = mapfile;
+            this.markers = markers;
+            this.genus = genus;
+        }
 
-                    System.out.println("scheduling upload for " + loadedMarkers.size() + " markers");
+        @Override
+        public void run() {
+            ArrayList<JSONObject> loadedMarkers = new ArrayList<>();
+            while (!markers.isEmpty()) {
+                Iterator<MarkerData> iterator = markers.iterator();
+                while (iterator.hasNext()) {
+                    MarkerData md = iterator.next();
                     try {
-                        Thread.sleep(50);
-                    } catch (InterruptedException ex) {
+                        /***try
+            {
+                ArrayList<JSONObject> loadedMarkers = new ArrayList<>();
+                if (markers.isEmpty())
+                    return;
+
+                List<Color> uploadColors = new LinkedList<>();
+                CFG.AUTOMAP_MARKERS.get().forEach(g -> {
+                    uploadColors.add(g.col);
+                });
+
+                System.out.println("processing " + markers.size() + " markers");
+                for (int i = 0; i < markers.size(); i++) {
+                    try {
+                        MarkerData md = markers.get(i);
+                        if (md.indirGrid.get() == null)
+                            continue;
+
+                        if (md.m instanceof MapFile.PMarker)
+                            if (!uploadColors.contains(((MapFile.PMarker) md.m).color))
+                                continue;*/
+
+                        Coord mgc = new Coord(Math.floorDiv(md.m.tc.x, 100), Math.floorDiv(md.m.tc.y, 100));
+                        long gridId = md.indirGrid.get().id;
+                        JSONObject o = new JSONObject();
+                        o.put("name", md.m.nm);
+                        o.put("genus", genus);
+                        o.put("gridID", String.valueOf(gridId));
+                        Coord gridOffset = md.m.tc.sub(mgc.mul(100));
+                        o.put("x", gridOffset.x);
+                        o.put("y", gridOffset.y);
+                        if(md.m instanceof MapFile.SMarker) {
+                            o.put("type", "shared");
+                            try {
+                                o.put("id", ((MapFile.SMarker) md.m).oid);
+                            } catch (Exception ex)
+                            {
+                                o.put("id", 0);
+                            }
+                            o.put("image", ((MapFile.SMarker) md.m).res.name);
+                        } else if(md.m instanceof MapFile.PMarker) {
+                            o.put("type", "player");
+                            o.put("color", ((MapFile.PMarker) md.m).color);
+                        }
+                        loadedMarkers.add(o);
+                    } catch (Loading ex) {
+                        System.out.println(ex);
+                        System.out.println("Rescheduling marker upload processing...");
+                        scheduler.schedule(this, 5, TimeUnit.SECONDS);
+                        return;
                     }
                 }
+
+                System.out.println("scheduling upload for " + loadedMarkers.size() + " markers");
                 try {
                     scheduler.execute(new MarkerUpdate(new JSONArray(loadedMarkers.toArray())));
                 } catch (Exception ex) {
                     System.out.println(ex);
                 }
             }
+            {
+                System.out.println("Error while processing markers");
+            }
+        }
+    }
 
+    private class MarkerUpdate implements Runnable {
+        JSONArray data;
+
+        MarkerUpdate(JSONArray data) {
+            this.data = data;
         }
 
-        private class MarkerUpdate implements Runnable {
-            JSONArray data;
-
-            MarkerUpdate(JSONArray data) {
-                this.data = data;
+        @Override
+        public void run() {
+            try {
+                HttpURLConnection connection =
+                        (HttpURLConnection) new URL(endpoint + "/markerUpdate").openConnection();
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
+                connection.setDoOutput(true);
+                try (DataOutputStream out = new DataOutputStream(connection.getOutputStream())) {
+                    final String json = data.toString();
+                    //System.out.println(json);
+                    out.write(json.getBytes(StandardCharsets.UTF_8));
+                }
+                int code = connection.getResponseCode();
+                connection.disconnect();
+            } catch (Exception ex) {
+                System.out.println(ex);
             }
+        }
+    }
 
-            @Override
-            public void run() {
+    private class PositionUpdates implements Runnable {
+        private class Tracking {
+            public String name;
+            public String genus;
+            public String type;
+            public long gridId;
+            public Coord2d coords;
+
+            public JSONObject getJSON() {
+                JSONObject j = new JSONObject();
+                j.put("name", name);
+                j.put("genus", genus);
+                j.put("type", type);
+                j.put("gridID", String.valueOf(gridId));
+                JSONObject c = new JSONObject();
+                c.put("x", (int) (coords.x / 11));
+                c.put("y", (int) (coords.y / 11));
+                j.put("coords", c);
+                return j;
+            }
+        }
+
+        private Map<Long, Tracking> tracking = new ConcurrentHashMap<Long, Tracking>();
+
+        private PositionUpdates() {
+        }
+
+        private void Track(long id, Coord2d coordinates, long gridId, String genus) {
+            Tracking t = tracking.get(id);
+            if(t == null) {
+                t = new Tracking();
+                tracking.put(id, t);
+
+                if(id == glob.sess.ui.gui.map.plgob) {
+                    t.name = playerName;
+                    t.type = "player";
+                } else {
+                    Glob g = glob;
+                    Gob gob = g.oc.getgob(id);
+                    t.name = "???";
+                    t.type = "white";
+                }
+            }
+            t.genus = genus;
+            t.gridId = gridId;
+            t.coords = gridOffset(coordinates);
+        }
+
+        @Override
+        public void run() {
+            if(trackingEnabled) {
+                Glob g = glob;
+                Iterator<Map.Entry<Long, Tracking>> i = tracking.entrySet().iterator();
+                JSONObject upload = new JSONObject();
+                while (i.hasNext()) {
+                    Map.Entry<Long, Tracking> e = i.next();
+                    if(g.oc.getgob(e.getKey()) == null) {
+                        i.remove();
+                    } else {
+                        upload.put(String.valueOf(e.getKey()), e.getValue().getJSON());
+                    }
+                }
+
                 try {
-                    HttpURLConnection connection =
-                            (HttpURLConnection) new URL(OptWnd.webmapEndpointTextEntry.buf.line() + "/markerUpdate").openConnection();
+                    final HttpURLConnection connection =
+                            (HttpURLConnection) new URL(endpoint + "/positionUpdate").openConnection();
                     connection.setRequestMethod("POST");
                     connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
                     connection.setDoOutput(true);
                     try (DataOutputStream out = new DataOutputStream(connection.getOutputStream())) {
-                        final String json = data.toString();
+                        final String json = upload.toString();
+                        //System.out.println(json);
+                        out.write(json.getBytes(StandardCharsets.UTF_8));
+                    } catch (Exception e) {
+                    }
+                    connection.getResponseCode();
+                } catch (final Exception ex) {
+                }
+            }
+        }
+    }
+
+    private static class GridUpdate {
+        String[][] grids;
+        Map<String, WeakReference<MCache.Grid>> gridRefs;
+
+        GridUpdate(final String[][] grids, Map<String, WeakReference<MCache.Grid>> gridRefs) {
+            this.grids = grids;
+            this.gridRefs = gridRefs;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("GridUpdate (%s)", grids[1][1]);
+        }
+    }
+
+    private class GenerateGridUpdateTask implements Runnable {
+        Coord coord;
+        String genus;
+        int retries = 3;
+
+        GenerateGridUpdateTask(Coord c, String genus) {
+            this.coord = c;
+            this.genus = genus;
+        }
+
+        @Override
+        public void run() {
+            if(gridEnabled) {
+                final String[][] gridMap = new String[3][3];
+                Map<String, WeakReference<MCache.Grid>> gridRefs = new HashMap<String, WeakReference<MCache.Grid>>();
+                try {
+                    for (int x = -1; x <= 1; x++) {
+                        for (int y = -1; y <= 1; y++) {
+                            final MCache.Grid subg = glob.map.getgrid(coord.add(x, y));
+                            gridMap[x + 1][y + 1] = String.valueOf(subg.id);
+                            gridRefs.put(String.valueOf(subg.id), new WeakReference<MCache.Grid>(subg));
+                        }
+                    }
+                    scheduler.execute(new UploadGridUpdateTask(new GridUpdate(gridMap, gridRefs), genus));
+                } catch (LoadingMap lm) {
+                    retries--;
+                    if(retries >= 0) {
+                        scheduler.schedule(this, 1L, TimeUnit.SECONDS);
+                    }
+                } catch (Exception e) {
+                    System.out.println(e);
+                }
+                ;
+            }
+        }
+    }
+
+    private class UploadGridUpdateTask implements Runnable {
+        private final GridUpdate gridUpdate;
+        private final String genus;
+        UploadGridUpdateTask(final GridUpdate gridUpdate, String genus) {
+            this.gridUpdate = gridUpdate;
+            this.genus = genus;
+        }
+
+        @Override
+        public void run() {
+            if(gridEnabled) {
+                HashMap<String, Object> dataToSend = new HashMap<>();
+
+                dataToSend.put("grids", this.gridUpdate.grids);
+                dataToSend.put("genus", this.genus);
+                try {
+                    HttpURLConnection connection =
+                            (HttpURLConnection) new URL(endpoint + "/gridUpdate").openConnection();
+                    connection.setRequestMethod("POST");
+                    connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
+                    connection.setDoOutput(true);
+                    try (DataOutputStream out = new DataOutputStream(connection.getOutputStream())) {
+                        String json = new JSONObject(dataToSend).toString();
                         out.write(json.getBytes(StandardCharsets.UTF_8));
                     }
-                    int code = connection.getResponseCode();
-                    connection.disconnect();
+                    if(connection.getResponseCode() == 200) {
+                        DataInputStream dio = new DataInputStream(connection.getInputStream());
+                        int nRead;
+                        byte[] data = new byte[1024];
+                        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                        while ((nRead = dio.read(data, 0, data.length)) != -1) {
+                            buffer.write(data, 0, nRead);
+                        }
+                        buffer.flush();
+                        String response = buffer.toString(StandardCharsets.UTF_8.name());
+                        JSONObject jo = new JSONObject(response);
+                        JSONArray reqs = jo.optJSONArray("gridRequests");
+                        synchronized (cache) {
+                            cache.put(Long.valueOf(gridUpdate.grids[1][1]), new MapRef(jo.getLong("map"), new Coord(jo.getJSONObject("coords").getInt("x"), jo.getJSONObject("coords").getInt("y"))));
+                        }
+                        for (int i = 0; reqs != null && i < reqs.length(); i++) {
+                            gridsUploader.execute(new GridUploadTask(reqs.getString(i), gridUpdate.gridRefs.get(reqs.getString(i)), genus));
+                        }
+                        try {
+                            JSONArray reqs2 = jo.optJSONArray("gridOverlayRequests");
+                            for (int i = 0; reqs2 != null && i < reqs2.length(); i++) {
+                                gridsUploader.execute(new GridOverlayUploadTask(reqs2.getString(i), gridUpdate.gridRefs.get(reqs2.getString(i)), genus));
+                            }
+                        }
+                        catch (Exception ex) {}
+                    }
+
                 } catch (Exception ex) {
                     System.out.println(ex);
                 }
             }
         }
+    }
 
-        private class PositionUpdates implements Runnable {
-            private class Tracking {
-                public String name;
-                public String genus;
-                /*** Kami updates */
-                public String type;
-                public long gridId;
-                public Coord2d coords;
+    private class GridUploadTask implements Runnable {
+        private final String gridID;
+        private final WeakReference<MCache.Grid> grid;
+        private final String genus;
 
-                public JSONObject getJSON() {
-                    JSONObject j = new JSONObject();
-                    j.put("name", name);
-                    j.put("name", name);
-                    j.put("genus", genus); /*** Kami updates */
-                    j.put("gridID", String.valueOf(gridId));
-                    JSONObject c = new JSONObject();
-                    c.put("x", (int) (coords.x / 11));
-                    c.put("y", (int) (coords.y / 11));
-                    j.put("coords", c);
-                    return j;
-                }
-            }
-
-            private Map<Long, Tracking> tracking = new ConcurrentHashMap<Long, Tracking>();
-
-            private PositionUpdates() {
-            }
-
-            /*** Kami updates for genus */
-            private void Track(long id, Coord2d coordinates, long gridId, String genus) {
-                Tracking t = tracking.get(id);
-                if (t == null) {
-                    t = new Tracking();
-                    tracking.put(id, t);
-
-                    if (id == glob.sess.ui.gui.map.plgob) {
-                        t.name = playerName;
-                        t.type = "player";
-                    } else {
-                        Glob g = glob;
-                        Gob gob = g.oc.getgob(id);
-                        t.name = "???";
-                        t.type = "white";
-                        if (gob != null) {
-                            Buddy bud = gob.getattr(Buddy.class);
-                            if (bud != null) {
-                                t.name = bud.rnm;
-                                t.type = Integer.toHexString(BuddyWnd.gc[bud.rgrp].getRGB());
-                            }
-                        }
-                    }
-                }
-                t.genus = genus; /*** Kami updates */
-                t.gridId = gridId;
-                t.coords = gridOffset(coordinates);
-            }
-
-            @Override
-            public void run() {
-                if (spamCount == spamPreventionVal) {
-                    spamCount = 0;
-                    if (OptWnd.sendLiveLocationCheckBox.a) {
-                        Glob g = glob;
-                        Iterator<Map.Entry<Long, Tracking>> i = tracking.entrySet().iterator();
-                        JSONObject upload = new JSONObject();
-                        while (i.hasNext()) {
-                            Map.Entry<Long, Tracking> e = i.next();
-                            if (g.oc.getgob(e.getKey()) == null) {
-                                i.remove();
-                            } else {
-                                upload.put(String.valueOf(e.getKey()), e.getValue().getJSON());
-                            }
-                        }
-
-                        try {
-                            final HttpURLConnection connection =
-                                    (HttpURLConnection) new URL(OptWnd.webmapEndpointTextEntry.buf.line() + "/positionUpdate").openConnection();
-                            connection.setRequestMethod("POST");
-                            connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
-                            connection.setDoOutput(true);
-                            try (DataOutputStream out = new DataOutputStream(connection.getOutputStream())) {
-                                final String json = upload.toString();
-                                out.write(json.getBytes(StandardCharsets.UTF_8));
-                            } catch (Exception e) {
-                            }
-                            connection.getResponseCode();
-                        } catch (final Exception ex) {
-                        }
-                    }
-                } else {
-                    spamCount++;
-                }
-            }
+        GridUploadTask(String gridId, WeakReference<MCache.Grid> grid, String genus) {
+            this.gridID = gridId;
+            this.grid = grid;
+            this.genus = genus;
         }
 
-        private static class GridUpdate {
-            String[][] grids;
-            Map<String, WeakReference<MCache.Grid>> gridRefs;
-
-            GridUpdate(final String[][] grids, Map<String, WeakReference<MCache.Grid>> gridRefs) {
-                this.grids = grids;
-                this.gridRefs = gridRefs;
-            }
-
-            @Override
-            public String toString() {
-                return String.format("GridUpdate (%s)", grids[1][1]);
-            }
-        }
-
-        private class GenerateGridUpdateTask implements Runnable {
-            Coord coord;
-            String genus; /**Kami genus update */
-            int retries = 3;
-
-            GenerateGridUpdateTask(Coord c, String genus) {
-                this.coord = c;
-                this.genus = genus; /**Kami genus update */
-            }
-
-            @Override
-            public void run() {
-                if (OptWnd.uploadMapTilesCheckBox.a) {
-                    final String[][] gridMap = new String[3][3];
-                    Map<String, WeakReference<MCache.Grid>> gridRefs = new HashMap<String, WeakReference<MCache.Grid>>();
+        @Override
+        public void run() {
+            try {
+                MCache.Grid g = grid.get();
+                if(g != null && glob != null && glob.map != null) {
+                    BufferedImage image = MinimapImageGenerator.drawmap(glob.map, g);
+                    if(image == null) {
+                        return;
+                    }
                     try {
-                        for (int x = -1; x <= 1; x++) {
-                            for (int y = -1; y <= 1; y++) {
-                                final MCache.Grid subg = glob.map.getgrid(coord.add(x, y));
-                                gridMap[x + 1][y + 1] = String.valueOf(subg.id);
-                                gridRefs.put(String.valueOf(subg.id), new WeakReference<MCache.Grid>(subg));
-                            }
+                        JSONObject extraData = new JSONObject();
+                        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                        ImageIO.write(image, "png", outputStream);
+                        ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+                        MultipartUtility multipart = new MultipartUtility(endpoint + "/gridUpload", "utf-8");
+                        multipart.addFormField("id", this.gridID);
+                        multipart.addFormField("genus", this.genus);
+                        multipart.addFilePart("file", inputStream, "minimap.png");
+                        extraData.put("season", glob.ast.is);
+                        multipart.addFormField("extraData", extraData.toString());
+                        MultipartUtility.Response response = multipart.finish();
+                        if(response.statusCode != 200) {
+                            System.out.println("Upload Error: Code" + response.statusCode + " - " + response.response);
                         }
-                        scheduler.execute(new UploadGridUpdateTask(new GridUpdate(gridMap, gridRefs), genus));
-                    } catch (LoadingMap lm) {
-                        retries--;
-                        if (retries >= 0) {
-                            scheduler.schedule(this, 1L, TimeUnit.SECONDS);
-                        }
-                    } catch (Exception e) {
-                        System.out.println(e);
-                    }
-                    ;
-                }
-            }
-        }
-
-        private class UploadGridUpdateTask implements Runnable {
-            private final GridUpdate gridUpdate;
-            private final String genus; /**Kami genus update */
-
-            UploadGridUpdateTask(final GridUpdate gridUpdate, String genus) {
-                this.gridUpdate = gridUpdate;
-                this.genus = genus;
-            }
-
-            @Override
-            public void run() {
-                if (OptWnd.uploadMapTilesCheckBox.a) {
-                    HashMap<String, Object> dataToSend = new HashMap<>();
-
-                    dataToSend.put("grids", this.gridUpdate.grids);
-                    try {
-                        HttpURLConnection connection =
-                                (HttpURLConnection) new URL(OptWnd.webmapEndpointTextEntry.buf.line() + "/gridUpdate").openConnection();
-                        connection.setRequestMethod("POST");
-                        connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
-                        connection.setDoOutput(true);
-                        try (DataOutputStream out = new DataOutputStream(connection.getOutputStream())) {
-                            String json = new JSONObject(dataToSend).toString();
-                            out.write(json.getBytes(StandardCharsets.UTF_8));
-                        }
-                        if (connection.getResponseCode() == 200) {
-                            DataInputStream dio = new DataInputStream(connection.getInputStream());
-                            int nRead;
-                            byte[] data = new byte[1024];
-                            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                            while ((nRead = dio.read(data, 0, data.length)) != -1) {
-                                buffer.write(data, 0, nRead);
-                            }
-                            buffer.flush();
-                            String response = buffer.toString(StandardCharsets.UTF_8.name());
-                            JSONObject jo = new JSONObject(response);
-                            JSONArray reqs = jo.optJSONArray("gridRequests");
-                            synchronized (cache) {
-                                cache.put(Long.valueOf(gridUpdate.grids[1][1]), new MapRef(jo.getLong("map"), new Coord(jo.getJSONObject("coords").getInt("x"), jo.getJSONObject("coords").getInt("y"))));
-                            }
-                            for (int i = 0; reqs != null && i < reqs.length(); i++) {
-                                gridsUploader.execute(new GridUploadTask(reqs.getString(i), gridUpdate.gridRefs.get(reqs.getString(i)), genus));
-                            }
-                            try {
-                                JSONArray reqs2 = jo.optJSONArray("gridOverlayRequests");
-                                for (int i = 0; reqs2 != null && i < reqs2.length(); i++) {
-                                    gridsUploader.execute(new GridOverlayUploadTask(reqs2.getString(i), gridUpdate.gridRefs.get(reqs2.getString(i)), genus));
-                                }
-                            }
-                            catch (Exception ex) {}
-                        }
-
-                    } catch (Exception ex) {
-                        System.out.println(ex);
+                    } catch (IOException e) {
+                        System.out.println("Cannot upload " + gridID + ": " + e.getMessage());
                     }
                 }
+            } catch (Loading ex) {
+                // Retry on Loading
+                gridsUploader.submit(this);
             }
+
         }
+    }
 
-        private class GridUploadTask implements Runnable {
-            private final String gridID;
-            private final WeakReference<MCache.Grid> grid;
-            private final String genus;
-
-            GridUploadTask(String gridID, WeakReference<MCache.Grid> grid, String genus) {
-                this.gridID = gridID;
-                this.grid = grid;
-                this.genus = genus;
-            }
-
-            @Override
-            public void run() {
-                try {
-                    MCache.Grid g = grid.get();
-                    if (g != null && glob != null) {
-                        BufferedImage image = MinimapImageGenerator.drawmap(glob.map, g);
-                        if (image == null) {
-                            throw new Loading();
-                        }
-                        try {
-                            JSONObject extraData = new JSONObject();
-                            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                            ImageIO.write(image, "png", outputStream);
-                            ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
-                            MultipartUtility multipart = new MultipartUtility(OptWnd.webmapEndpointTextEntry.buf.line() + "/gridUpload", "utf-8");
-                            multipart.addFormField("id", this.gridID);
-                            multipart.addFilePart("file", inputStream, "minimap.png");
-                            extraData.put("season", glob.ast.is);
-                            multipart.addFormField("extraData", extraData.toString());
-                            MultipartUtility.Response response = multipart.finish();
-                            if(response.statusCode != 200) {
-                                System.out.println("Upload Error: Code" + response.statusCode + " - " + response.response);
-                            } /*** Kami update */
-                        } catch (IOException ignored) {
-                        }
-                    }
-                } catch (Loading ex) {
-                    gridsUploader.submit(this);
-                }
-
-            }
-        }
-
-     private class GridOverlayUploadTask implements Runnable {
+    private class GridOverlayUploadTask implements Runnable {
         private final String gridID;
         private final WeakReference<MCache.Grid> grid;
         private final String genus;
@@ -692,34 +703,34 @@ public class MappingClient {
             }
 
         }
-     }
+    }
 
-        private static Coord toGC(Coord2d c) {
-            return new Coord(Math.floorDiv((int) c.x, 1100), Math.floorDiv((int) c.y, 1100));
+    private static Coord toGC(Coord2d c) {
+        return new Coord(Math.floorDiv((int) c.x, 1100), Math.floorDiv((int) c.y, 1100));
+    }
+
+    private static Coord toGridUnit(Coord2d c) {
+        return new Coord(Math.floorDiv((int) c.x, 1100) * 1100, Math.floorDiv((int) c.y, 1100) * 1100);
+    }
+
+    private static Coord2d gridOffset(Coord2d c) {
+        Coord gridUnit = toGridUnit(c);
+        return new Coord2d(c.x - gridUnit.x, c.y - gridUnit.y);
+    }
+
+    public class MapRef {
+        public Coord gc;
+        public long mapID;
+
+        private MapRef(long mapID, Coord gc) {
+            this.gc = gc;
+            this.mapID = mapID;
         }
 
-        private static Coord toGridUnit(Coord2d c) {
-            return new Coord(Math.floorDiv((int) c.x, 1100) * 1100, Math.floorDiv((int) c.y, 1100) * 1100);
+        public String toString() {
+            return (gc.toString() + " in map space " + mapID);
         }
-
-        private static Coord2d gridOffset(Coord2d c) {
-            Coord gridUnit = toGridUnit(c);
-            return new Coord2d(c.x - gridUnit.x, c.y - gridUnit.y);
-        }
-
-        public class MapRef {
-            public Coord gc;
-            public long mapID;
-
-            private MapRef(long mapID, Coord gc) {
-                this.gc = gc;
-                this.mapID = mapID;
-            }
-
-            public String toString() {
-                return (gc.toString() + " in map space " + mapID);
-            }
-        }
+    }
 
     private class UploadInspectResult implements Runnable {
         Coord2d coord;
@@ -771,40 +782,4 @@ public class MappingClient {
             }
         }
     }
-
-        public void uploadSMarker(Gob gob, MapFile.SMarker marker) {
-            try {
-                MCache.Grid grid = glob.map.getgrid(toGridCoordinate(gob.rc));
-                Coord offset = gridOffset2(gob.rc);
-
-                JSONObject obj = new JSONObject();
-                obj.put("name", marker.nm);
-                obj.put("gridID", String.valueOf(grid.id));
-                obj.put("x", offset.x);
-                obj.put("y", offset.y);
-                obj.put("type", "shared");
-                obj.put("id", marker.oid);
-                obj.put("image", marker.res.name);
-
-                scheduler.execute(new MarkerUpdate(new JSONArray(List.of(obj))));
-            } catch (Loading ignored) {
-            }
-        }
-
-        /**
-         * the grid coordinate of a map grid, used for retrieving map grids in mcache
-         * example: "glob.map.getgrid(toGridCoordinate(gob.rc)).id" will get the grid id for the coordinate the gob is on
-         **/
-        public static Coord toGridCoordinate(Coord2d c) {
-            return new Coord(Math.floorDiv((int) c.x, 1100), Math.floorDiv((int) c.y, 1100));
-        }
-
-        /**
-         * a coordinate (0-100,0-100) within a 100x100 map grid
-         **/
-        public static Coord gridOffset2(Coord2d c) {
-            Coord gridUnit = toGridUnit(c);
-            return new Coord((int) ((c.x - gridUnit.x) / 11d), (int) ((c.y - gridUnit.y) / 11d));
-        }
-
-    }
+}

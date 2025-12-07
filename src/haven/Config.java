@@ -37,10 +37,10 @@ import java.io.PrintStream;
 
 public class Config {
     public static final Properties jarprops = getjarprops();
-    public static final String confid = "NeuroToxin";
+    public static final String confid = "Hurricane";
     public static final Variable<Boolean> par = Variable.def(() -> true);
     public final Properties localprops = getlocalprops();
-	public static final String clientVersion = "v1.0";
+	public static final String clientVersion = "v1.40b";
 	public static String githubLatestVersion = "Loading...";
 
     private static Config global = null;
@@ -361,10 +361,8 @@ public class Config {
 		// ND: Map Icons that should ALWAYS be enabled. Players should be forced to see these at all times.
 		// The key is the icon name, the value is the error message sent when they try to disable the icon.
 		put("Player", "You should ALWAYS see players on the map. I don't care what you have to say.");
-		//put("Cave Passage", "Let's keep Caves visible, yeah?");
 		put("Swirling Vortex", "Vortexes can be dangerous. You don't want to miss them, right?");
 		put("Boost Speed", "You need to see Speed Boosts at all times. Keep them enabled.");
-		//put("Burrow", "Burrows can hide things, like someone trying to ambush you. Keep them enabled.");
 	}};
 
 	public static final List<String> statsAndAttributesOrder = new ArrayList<String>(){{
@@ -1112,7 +1110,7 @@ public class Config {
 		MapAttInfo.put("uppercut", new AttackInfo(new Color[]{Color.GREEN,Color.BLUE},30));
 	}
 
-	private static String playername;
+	public static String playername;
 
 	public static void setPlayerName(String playername) {
 		Config.playername = playername;
@@ -1122,11 +1120,19 @@ public class Config {
 		if (MappingClient.initialized()) {
 			MappingClient.destroy();
 		}
-        if (!OptWnd.webmapEndpointTextEntry.text().isEmpty()) {
+        if (!OptWnd.webmapEndpointTextEntry.text().isEmpty() && ui.sess != null && ui.sess.glob != null) {
             MappingClient.init(ui.sess.glob);
             MappingClient automapper = MappingClient.getInstance();
             if (automapper != null)
-                automapper.SetPlayerName(OptWnd.liveLocationNameTextEntry.buf.line() + " (" + playername + ")");
+                automapper.SetEndpoint(Utils.getpref("webMapEndpoint", ""));
+                String liveLocationName = Utils.getpref("liveLocationName", "");
+                String playerName = (liveLocationName != null && !liveLocationName.trim().isEmpty())
+                    ? liveLocationName.trim()
+                    : playername;
+                automapper.SetPlayerName(playerName);
+
+                automapper.EnableGridUploads(Utils.getprefb("uploadMapTiles", false));
+                automapper.EnableTracking(Utils.getprefb("enableLocationTracking", false));
         }
 	}
 

@@ -27,6 +27,8 @@
 package haven;
 
 import java.util.*;
+
+import haven.automated.food.FoodService;
 import haven.render.*;
 import haven.res.ui.tt.q.qbuff.QBuff;
 import haven.res.ui.tt.q.quality.Quality;
@@ -207,6 +209,8 @@ public class GItem extends AWidget implements ItemInfo.SpriteOwner, GSprite.Owne
 	hoverset = false;
     }
 
+
+
     public List<ItemInfo> info() {
 	if(this.info == null) {
 	    List<ItemInfo> info = ItemInfo.buildinfo(this, rawinfo);
@@ -218,6 +222,19 @@ public class GItem extends AWidget implements ItemInfo.SpriteOwner, GSprite.Owne
 	}
 	return(this.info);
     }
+
+
+
+	public boolean checkForHempBuff(){
+		for(Widget buff : ui.gui.buffs.children()){
+			if(buff instanceof Buff && ((Buff) buff).res != null){
+				if(((Buff) buff).res.get().name.equals("gfx/hud/buffs/ganja")){
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 
     public Resource resource() {
 	return(res.get());

@@ -129,12 +129,7 @@ public class Finalizer {
 		    Ref ref = (Ref)queue.remove();
 		    if(ref != null)
 			ref.run();
-        } catch(InterruptedException e) {
-            // InterruptedException is expected when thread is interrupted during shutdown
-            // Don't log this as it's a normal shutdown condition
-            Thread.currentThread().interrupt();
-            break;
-        } catch(Throwable exc) {
+		} catch(Throwable exc) {
 		    new Warning(exc, "unexpected exception in finalizer").issue();
 		}
 	    }
